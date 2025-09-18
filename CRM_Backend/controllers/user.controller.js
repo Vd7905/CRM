@@ -158,6 +158,38 @@ const estimateSegment = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, { count }, "Segment estimated successfully"));
 });
 
+
+// return the customers for a particular segment
+
+const getSegmentCustomers = asyncHandler(async (req, res) => {
+  const { segmentId } = req.params; // <- updated
+
+  if (!segmentId) {
+    throw new ApiError(400, "Segment ID is required");
+  }
+
+  // 1. Fetch the segment
+  const segment = await Segment.findById(segmentId).lean();
+
+  if (!segment) {
+    throw new ApiError(404, "Segment not found");
+  }
+
+  // 2. Build query from rules
+  const query = buildSegmentQuery(segment.rules);
+
+  // 3. Fetch customers
+  const customers = await Customer.find(query).lean();
+
+  // 4. Return customers
+  res
+    .status(200)
+    .json(new ApiResponse(200, customers, "Segment customers fetched successfully"));
+});
+
+
+
+
 // Create campaign
 const createCampaign = asyncHandler(async (req, res) => {
   const { name, segmentId, template } = req.body;
@@ -476,5 +508,6 @@ export {
   getUserSegments,
   estimateSegment,
   getCommuniactionLog,
+  getSegmentCustomers,
 };
 

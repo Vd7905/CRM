@@ -47,9 +47,11 @@ import customerRouter from "./routes/customer.route.js";
 import orderRouter from "./routes/order.route.js";
 import AIRouter from "./routes/ai.route.js";
 import globalErrorHandler from "./middleware/errorhandler.middleware.js";
+import churnRouter from "./routes/churn.route.js"
 
 // routes declaration
 app.use("/api/auth", authRouter);
+app.use("/api/churn", churnRouter);
 app.use("/api/user", userRouter);
 app.use("/api/customer", customerRouter);
 app.use("/api/order", orderRouter);

@@ -6,6 +6,7 @@ import {
   getCommuniactionLog,
   getUserCampaigns,
   getUserSegments,
+  getSegmentCustomers,
 } from "../controllers/user.controller.js";
 import authenticate from "../middleware/auth.middleware.js";
 
@@ -15,7 +16,7 @@ const router = Router();
 router.route("/create-segment").post(authenticate, createSegment);
 router.route("/get-segment").get(authenticate, getUserSegments);
 router.route("/estimate-segment").post(authenticate, estimateSegment);
-
+router.route("/get-all-customers/:segmentId").get(authenticate, getSegmentCustomers);
 //Campaign
 router.route("/create-campaign").post(authenticate, createCampaign);
 // get capaign specific to user, that created
