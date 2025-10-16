@@ -40,7 +40,7 @@ export default function LoginForm() {
             <Interactive3DScene />
           </div>
           <div className="relative z-10 flex flex-col items-center justify-start pt-8 px-4 sm:px-8 text-center lg:text-left lg:top-8 lg:left-8 lg:max-w-md lg:absolute">
-            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black leading-tight">CRM PRO</h1>
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black leading-tight">CRM <span className="text-primary"> PRO</span></h1>
             <p className="text-sm sm:text-base lg:text-lg leading-relaxed font-medium text-[var(--foreground)]/80 mt-2">
               Experience the future of customer relationship management
             </p>
@@ -87,7 +87,7 @@ export default function LoginForm() {
                   </Button>
 
                   {/* Google Auth */}
-                  <Button onClick={handleGoogleAuth} variant="outline" className="w-full h-10 flex items-center justify-center space-x-2 text-[var(--foreground)] border-[var(--foreground)] hover:bg-[var(--muted)]/50">
+                  <Button onClick={handleGoogleAuth} variant="outline" className="w-full h-10 flex items-center justify-center space-x-2 text-[var(--foreground)] border-[var(--foreground)] hover:bg-[var(--muted)]">
                     <FcGoogle className="w-5 h-5" /> <span>{isSignup ? "Sign up with Google" : "Continue with Google"}</span>
                   </Button>
 
