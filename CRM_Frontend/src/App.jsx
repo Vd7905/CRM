@@ -1,8 +1,8 @@
 // src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-// import Dashboard from "@/pages/Dashboard";
-// import Campaigns from "@/pages/Campaigns";
+import Dashboard from "@/pages/Dashboard";
+import Campaigns from "@/pages/Campaigns";
 // import Customers from "@/pages/Customers";
 import Login from "./pages/LoginPage";
 
@@ -18,7 +18,7 @@ function App() {
           path="/"
           element={
             <Layout>
-             {/* <Dashboard /> */}
+             <Dashboard />
             </Layout>
           }
         />
@@ -26,7 +26,7 @@ function App() {
           path="/campaigns"
           element={
             <Layout>
-              {/* <Campaigns /> */}
+              <Campaigns />
             </Layout>
           }
         />
