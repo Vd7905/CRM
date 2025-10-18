@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Campaigns from "@/pages/Campaigns";
-// import Customers from "@/pages/Customers";
+import CustomerAnalytics from "@/pages/CustomerAnalytics";
 import Login from "./pages/LoginPage";
 
 function App() {
@@ -34,7 +34,7 @@ function App() {
           path="/customers"
           element={
             <Layout>
-              {/* <Customers /> */}
+              <CustomerAnalytics/>
             </Layout>
           }
         />
