@@ -15,7 +15,6 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -80,12 +79,10 @@ const sampleCustomers = [
 ];
 
 
-export default function CustomerAnalytics() {
-  const [customers, setCustomers] = useState(sampleCustomers);
+export default function SegmentCustomerAnalytics() {
+  const [customers] = useState(sampleCustomers);
   const [q, setQ] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
 
   // Refs for viewport detection and animation keys
   const barChartRef = useRef(null);
@@ -97,7 +94,7 @@ export default function CustomerAnalytics() {
   const [areaKey, setAreaKey] = useState(0);
   const [pieKey, setPieKey] = useState(0);
 
-  // Check if elements are in viewport (70% visible)
+  // Check if elements are in viewport (once: false means it triggers every time)
   const isBarChartInView = useInView(barChartRef, { once: false, amount: 0.7 });
   const isAreaChartInView = useInView(areaChartRef, { once: false, amount: 0.7 });
   const isPieChartInView = useInView(pieChartRef, { once: false, amount: 0.7 });
@@ -114,83 +111,6 @@ export default function CustomerAnalytics() {
   React.useEffect(() => {
     if (isPieChartInView) setPieKey(prev => prev + 1);
   }, [isPieChartInView]);
-
-  // Handle CSV upload
-  const handleFileUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const text = await file.text();
-      
-      // Simple CSV parser (no external library needed)
-      const lines = text.split('\n').filter(line => line.trim());
-      if (lines.length < 2) {
-        alert('CSV file is empty or invalid');
-        setUploading(false);
-        return;
-      }
-
-      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-      const parsedCustomers = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-        const row = {};
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
-        });
-
-        const customer = {
-          _id: row._id || row.id || `customer-${Date.now()}-${i}`,
-          name: row.name || '',
-          email: row.email || '',
-          phone: row.phone || '',
-          address: {
-            city: row.city || row['address.city'] || row.address_city || '',
-            state: row.state || row['address.state'] || row.address_state || '',
-            country: row.country || row['address.country'] || row.address_country || 'India'
-          },
-          demographics: {
-            age: parseInt(row.age || row['demographics.age'] || row.demographics_age || 0),
-            gender: row.gender || row['demographics.gender'] || row.demographics_gender || '',
-            occupation: row.occupation || row['demographics.occupation'] || row.demographics_occupation || ''
-          },
-          stats: {
-            total_spent: parseFloat(row.total_spent || row['stats.total_spent'] || row.stats_total_spent || 0),
-            order_count: parseInt(row.order_count || row['stats.order_count'] || row.stats_order_count || 0),
-            last_purchase: row.last_purchase || row['stats.last_purchase'] || row.stats_last_purchase || null
-          },
-          tags: row.tags ? row.tags.split('|').map(t => t.trim()) : [],
-          is_active: row.is_active === 'true' || row.is_active === '1' || row.is_active === true,
-          churn_probability: parseFloat(row.churn_probability || 0),
-          recommendations: row.recommendations ? row.recommendations.split('|').map(r => r.trim()) : [],
-          cluster_id: parseInt(row.cluster_id || 0)
-        };
-
-        parsedCustomers.push(customer);
-      }
-      
-      if (parsedCustomers.length > 0) {
-        setCustomers(parsedCustomers);
-        alert(`Successfully uploaded ${parsedCustomers.length} customers!`);
-      } else {
-        alert('No valid customer data found in CSV');
-      }
-      
-      setUploading(false);
-    } catch (error) {
-      console.error('Error reading file:', error);
-      alert('Error reading file. Please check the CSV format and try again.');
-      setUploading(false);
-    }
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
 
   // Derived metrics
   const stats = useMemo(() => {
@@ -260,34 +180,22 @@ export default function CustomerAnalytics() {
     <main className="flex-1 p-4 sm:p-6 bg-[var(--background)] text-[var(--text)] transition-colors duration-300">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">Customer Analytics</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold">Your Segment Customer Analytics</h1>
           <p className="text-sm text-[var(--text)] mt-1">Overview of customer health, segmentation and recommendations</p>
         </div>
         <div className="flex items-center gap-3">
-          <Input placeholder="Search customers..." value={q} onChange={(e) => setQ(e.target.value)}/>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept=".csv"
-            style={{ display: 'none' }}
-          />
-          <Button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            {uploading ? 'Uploading...' : 'Upload CSV'}
-          </Button>
+          <Input placeholder="Search customers..." value={q} onChange={(e) => setQ(e.target.value)} />
+          <Button onClick={() => setQ("")} className="hidden sm:inline-flex">Clear</Button>
         </div>
       </div>
 
       {/* Top Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <motion.div whileHover={{ y: -4 }} className={smallCard}>
+        <motion.div whileHover={{ y: -4 }} 
+        className={smallCard}
+        >
           <CardHeader className="p-0">
-            <CardTitle className="text-sm text-[var(--text)]">Total Customers</CardTitle>
+            <CardTitle className="text-sm text-[var(--text)]">Total Customers In This Segment </CardTitle>
           </CardHeader>
           <CardContent className="p-0 mt-2">
             <div className="text-2xl sm:text-3xl font-semibold">{stats.total}</div>

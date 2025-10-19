@@ -4,6 +4,7 @@ import Layout from "@/components/layout/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Campaigns from "@/pages/Campaigns";
 import CustomerAnalytics from "@/pages/CustomerAnalytics";
+import SegmentCustomerAnalytics from "@/pages/SegmentCustomerAnalytics"
 import Login from "./pages/LoginPage";
 
 function App() {
@@ -35,6 +36,15 @@ function App() {
           element={
             <Layout>
               <CustomerAnalytics/>
+            </Layout>
+          }
+        />
+
+        <Route
+          path="/segment-customers"
+          element={
+            <Layout>
+              <SegmentCustomerAnalytics/>
             </Layout>
           }
         />

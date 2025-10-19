@@ -62,7 +62,7 @@ export default function Dashboard() {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
       <div className="rounded-2xl bg-[var(--card)] p-4 sm:p-6 border border-[var(--muted)]">
         <p className="text-sm text-[var(--text)] mb-1">Total Campaigns</p>
-        <p className="text-2xl sm:text-3xl font-semibold text-[var(--text)]">3</p>
+        <p className="text-2xl sm:text-3xl font-semibold text-[var(--primary)]">3</p>
       </div>
       <div className="rounded-2xl bg-[var(--card)] p-4 sm:p-6 border border-[var(--muted)]">
         <p className="text-sm text-[var(--text)] mb-1">Active</p>
@@ -131,8 +131,6 @@ export default function Dashboard() {
                       </DialogClose>
                     </DialogContent>
                   </Dialog>
-
-                  {/* Communication Logs Dialog */}
                  {/* Communication Logs Dialog */}
 <Dialog>
   <DialogTrigger asChild>
@@ -209,7 +207,7 @@ export default function Dashboard() {
                   {/* Edit button */}
                   <Button
                     variant="outline"
-                    className="border-[var(--muted)] text-[var(--text)] hover:bg-[var(--muted)]/40 transition-colors"
+                    className="border-[var(--muted)]"
                   >
                     Edit
                   </Button>

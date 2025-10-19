@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,11 +38,6 @@ export default function CreateCampaign() {
 
   const handleEstimateAudience = () =>
     alert("📊 Estimated Audience Size: 1,240 users (demo)");
-
-  const handleAnalyzeSegment = () =>
-    alert(
-      "🔍 Analyzing segment customers...\nTop insight: 65% are repeat buyers within the last 3 months."
-    );
 
   const handleSubmit = () => {
     const payload = {
@@ -105,12 +101,11 @@ export default function CreateCampaign() {
               >
                 Estimate Audience
               </Button>
-              <Button
-                onClick={handleAnalyzeSegment}
-                className="bg-primary text-white hover:bg-secondary transition"
-              >
-                Analyze Segment Customers
-              </Button>
+              <NavLink to="/segment-customers">
+                  <Button className="bg-primary text-white hover:bg-secondary transition">
+                     Analyze Segment Customers
+                  </Button>
+              </NavLink>
             </div>
           </CardHeader>
 
