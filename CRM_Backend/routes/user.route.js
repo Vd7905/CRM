@@ -19,7 +19,7 @@ router.route("/estimate-segment").post(authenticate, estimateSegment);
 router.route("/get-all-customers/:segmentId").get(authenticate, getSegmentCustomers);
 //Campaign
 router.route("/create-campaign").post(authenticate, createCampaign);
-// get capaign specific to user, that created
+// get all campaign specific to user, that he created
 router.route("/get-campaign").get(authenticate, getUserCampaigns);
 
 router.route("/get-log").get(authenticate, getCommuniactionLog);
