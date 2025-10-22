@@ -50,6 +50,7 @@ import globalErrorHandler from "./middleware/errorhandler.middleware.js";
 import churnRouter from "./routes/churn.route.js"
 import recommendRouter from "./routes/recommendation.route.js"
 import enrichRouter from "./routes/enrichCustomers.route.js"
+
 // routes declaration
 app.use("/api/auth", authRouter);
 app.use("/api/churn", churnRouter);

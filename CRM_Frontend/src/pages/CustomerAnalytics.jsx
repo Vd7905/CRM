@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import { useEffect } from "react";
+import api from "@/utils/axios";
 import {
   ResponsiveContainer,
   BarChart,
@@ -33,59 +35,31 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-
-const sampleCustomers = [
-  {
-    _id: "68bf1941113c2730ea601324",
-    name: "Anjali",
-    email: "anjali@example.com",
-    phone: "+919875543210",
-    address: { city: "Noida", state: "Bihar", country: "India" },
-    demographics: { age: 20, gender: "Female", occupation: "Software Engineer" },
-    stats: { total_spent: 20000, order_count: 2, last_purchase: "2025-09-08T18:25:55.109Z" },
-    tags: ["premium", "tech"],
-    is_active: true,
-    churn_probability: 0.36,
-    recommendations: ["Offer loyalty rewards + early access to premium products"],
-    cluster_id: 1,
-  },
-  {
-    _id: "68c46f999fb547afdad190cc",
-    name: "Priya Singh",
-    email: "priya.singh3@example.com",
-    phone: "+919898765432",
-    address: { city: "Delhi", state: "Delhi", country: "India" },
-    demographics: { age: 22, gender: "Female", occupation: "UI/UX Designer" },
-    stats: { total_spent: 0, order_count: 0 },
-    tags: ["premium", "creative"],
-    is_active: true,
-    churn_probability: 0.36,
-    recommendations: ["Offer loyalty rewards + early access to premium products"],
-    cluster_id: 1,
-  },
-  {
-    _id: "68c4752b9fb547afdad190e8",
-    name: "Vikas",
-    email: "vikasdixit7905@gmail.com",
-    phone: "+919875543210",
-    address: { city: "Noida", state: "Bihar", country: "India" },
-    demographics: { age: 20, gender: "Female", occupation: "Software Engineer" },
-    stats: { total_spent: 0, order_count: 0 },
-    tags: ["premium", "tech"],
-    is_active: true,
-    churn_probability: 0.36,
-    recommendations: ["Offer loyalty rewards + early access to premium products"],
-    cluster_id: 1,
-  },
-];
-
+import axios from "axios";
 
 export default function CustomerAnalytics() {
-  const [customers, setCustomers] = useState(sampleCustomers);
+  const [customers, setCustomers] = useState([]);
   const [q, setQ] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+
+  
+  useEffect(() => {
+    const fetchEnrichedCustomers = async () => {
+      try {
+        const res = await api.post("/api/enrich/analyse-all");
+        console.log(res);
+        if (res.data && res.data.data) {
+          setCustomers(res.data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch enriched customers:", err);
+      }
+    };
+
+    fetchEnrichedCustomers();
+  }, []);
 
   // Refs for viewport detection and animation keys
   const barChartRef = useRef(null);
@@ -579,8 +553,6 @@ export default function CustomerAnalytics() {
                           <DialogClose className="mt-4 bg-[var(--primary)] text-white px-4 py-2 rounded">Close</DialogClose>
                         </DialogContent>
                       </Dialog>
-
-                      <Button size="sm" variant="ghost" className="text-[var(--text)]">Export</Button>
                     </div>
                   </td>
                 </tr>

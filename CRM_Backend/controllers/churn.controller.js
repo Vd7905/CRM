@@ -23,6 +23,7 @@ export const predictChurn = async (req, res) => {
 );
 
     const customers = segmentResponse.data.data || [];
+   // console.log("Vikas", segmentResponse.data);
 
     if (customers.length === 0) {
       return res.status(404).json({ message: "No customers in this segment" });

@@ -1,5 +1,7 @@
-import React, { useMemo, useState, useRef } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
+import { useParams, useLocation } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
+import api from "@/utils/axios";
 import {
   ResponsiveContainer,
   BarChart,
@@ -15,107 +17,74 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-const sampleCustomers = [
-  {
-    _id: "68bf1941113c2730ea601324",
-    name: "Anjali",
-    email: "anjali@example.com",
-    phone: "+919875543210",
-    address: { city: "Noida", state: "Bihar", country: "India" },
-    demographics: { age: 20, gender: "Female", occupation: "Software Engineer" },
-    stats: { total_spent: 20000, order_count: 2, last_purchase: "2025-09-08T18:25:55.109Z" },
-    tags: ["premium", "tech"],
-    is_active: true,
-    churn_probability: 0.36,
-    recommendations: ["Offer loyalty rewards + early access to premium products"],
-    cluster_id: 1,
-  },
-  {
-    _id: "68c46f999fb547afdad190cc",
-    name: "Priya Singh",
-    email: "priya.singh3@example.com",
-    phone: "+919898765432",
-    address: { city: "Delhi", state: "Delhi", country: "India" },
-    demographics: { age: 22, gender: "Female", occupation: "UI/UX Designer" },
-    stats: { total_spent: 0, order_count: 0 },
-    tags: ["premium", "creative"],
-    is_active: true,
-    churn_probability: 0.36,
-    recommendations: ["Offer loyalty rewards + early access to premium products"],
-    cluster_id: 1,
-  },
-  {
-    _id: "68c4752b9fb547afdad190e8",
-    name: "Vikas",
-    email: "vikasdixit7905@gmail.com",
-    phone: "+919875543210",
-    address: { city: "Noida", state: "Bihar", country: "India" },
-    demographics: { age: 20, gender: "Female", occupation: "Software Engineer" },
-    stats: { total_spent: 0, order_count: 0 },
-    tags: ["premium", "tech"],
-    is_active: true,
-    churn_probability: 0.36,
-    recommendations: ["Offer loyalty rewards + early access to premium products"],
-    cluster_id: 1,
-  },
-];
-
-
 export default function SegmentCustomerAnalytics() {
-  const [customers] = useState(sampleCustomers);
+  const { segmentId } = useParams(); // URL param
+  const location = useLocation(); 
+  const passedId = location.state?.segmentId || segmentId; // fallback to param
+
+  const [customers, setCustomers] = useState([]);
   const [q, setQ] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Refs for viewport detection and animation keys
+  // Refs for chart animations
   const barChartRef = useRef(null);
   const areaChartRef = useRef(null);
   const pieChartRef = useRef(null);
-
-  // Animation keys that change when view status changes
   const [barKey, setBarKey] = useState(0);
   const [areaKey, setAreaKey] = useState(0);
   const [pieKey, setPieKey] = useState(0);
 
-  // Check if elements are in viewport (once: false means it triggers every time)
   const isBarChartInView = useInView(barChartRef, { once: false, amount: 0.7 });
   const isAreaChartInView = useInView(areaChartRef, { once: false, amount: 0.7 });
   const isPieChartInView = useInView(pieChartRef, { once: false, amount: 0.7 });
 
-  // Update keys when elements come into view to retrigger animations
-  React.useEffect(() => {
-    if (isBarChartInView) setBarKey(prev => prev + 1);
-  }, [isBarChartInView]);
+  useEffect(() => { if (isBarChartInView) setBarKey(prev => prev + 1); }, [isBarChartInView]);
+  useEffect(() => { if (isAreaChartInView) setAreaKey(prev => prev + 1); }, [isAreaChartInView]);
+  useEffect(() => { if (isPieChartInView) setPieKey(prev => prev + 1); }, [isPieChartInView]);
+  
 
-  React.useEffect(() => {
-    if (isAreaChartInView) setAreaKey(prev => prev + 1);
-  }, [isAreaChartInView]);
+  // Fetch customers from backend using segmentId
+   useEffect(() => {
+    if (!segmentId) return;
 
-  React.useEffect(() => {
-    if (isPieChartInView) setPieKey(prev => prev + 1);
-  }, [isPieChartInView]);
+    const fetchCustomers = async () => {
+  setLoading(true);
+  try {
+    const response = await api.post("/api/enrich/analyse", {
+      segmentId: segmentId,
+    });
+
+    if (Array.isArray(response.data)) {
+      setCustomers(response.data);
+    } else if (response.data?.data && Array.isArray(response.data.data)) {
+      setCustomers(response.data.data);
+    } else {
+      console.warn("Unexpected response format:", response.data);
+      setCustomers([]);
+    }
+
+    //console.log("Fetched Customers:", response.data);
+  } catch (err) {
+    console.error("Error fetching customers:", err);
+    setCustomers([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+    fetchCustomers();
+  }, [segmentId]);
 
   // Derived metrics
   const stats = useMemo(() => {
     const total = customers.length;
-    const active = customers.filter((c) => c.is_active).length;
+    const active = customers.filter(c => c.is_active).length;
     const totalSpent = customers.reduce((s, c) => s + (c.stats?.total_spent || 0), 0);
     const avgSpend = total ? Math.round(totalSpent / total) : 0;
     const avgOrders = total ? (customers.reduce((s, c) => s + (c.stats?.order_count || 0), 0) / total).toFixed(1) : 0;
@@ -123,79 +92,62 @@ export default function SegmentCustomerAnalytics() {
     return { total, active, totalSpent, avgSpend, avgOrders, avgChurn: Number(avgChurn.toFixed(2)) };
   }, [customers]);
 
-  // Tag distribution for pie chart
   const tagDistribution = useMemo(() => {
     const map = {};
-    customers.forEach((c) => {
-      (c.tags || []).forEach((t) => {
-        map[t] = (map[t] || 0) + 1;
-      });
-    });
+    customers.forEach(c => (c.tags || []).forEach(t => { map[t] = (map[t] || 0) + 1; }));
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [customers]);
 
-  // Spend per customer for bar chart
-  const spendData = useMemo(() => {
-    return customers.map((c) => ({
-      name: c.name,
-      spent: c.stats?.total_spent || 0,
-      orders: c.stats?.order_count || 0,
-    }));
-  }, [customers]);
+  const spendData = useMemo(() => customers.map(c => ({
+    name: c.name,
+    spent: c.stats?.total_spent || 0,
+    orders: c.stats?.order_count || 0,
+  })), [customers]);
 
-  // Timeline sample (made from last_purchase) for area chart
   const timelineData = useMemo(() => {
     const monthMap = {};
-    customers.forEach((c) => {
+    customers.forEach(c => {
       const d = c.stats?.last_purchase ? new Date(c.stats.last_purchase) : null;
       const key = d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` : "No Purchase";
       monthMap[key] = (monthMap[key] || 0) + (c.stats?.total_spent || 0);
     });
     const arr = Object.entries(monthMap).map(([k, v]) => ({ month: k, total: v }));
     arr.sort((a, b) => (a.month > b.month ? 1 : -1));
-    if (arr.length === 0) {
-      return [
-        { month: "2025-01", total: 0 },
-        { month: "2025-02", total: 0 },
-        { month: "2025-03", total: 0 },
-      ];
-    }
-    return arr;
+    return arr.length ? arr : [{ month: "2025-01", total: 0 }, { month: "2025-02", total: 0 }, { month: "2025-03", total: 0 }];
   }, [customers]);
 
   const filteredCustomers = useMemo(() => {
     const qq = q.trim().toLowerCase();
     if (!qq) return customers;
     return customers.filter(
-      (c) =>
-        c.name.toLowerCase().includes(qq) ||
-        (c.email || "").toLowerCase().includes(qq) ||
-        (c.phone || "").toLowerCase().includes(qq)
+      c => c.name.toLowerCase().includes(qq) ||
+           (c.email || "").toLowerCase().includes(qq) ||
+           (c.phone || "").toLowerCase().includes(qq)
     );
   }, [q, customers]);
 
   const smallCard = "rounded-2xl p-4 sm:p-6 border border-[var(--muted)] bg-[var(--card)]";
 
-  return (
+  if (loading) return <div className="p-6 text-center text-[var(--text)]">Loading customer data...</div>;
+
+   return (
     <main className="flex-1 p-4 sm:p-6 bg-[var(--background)] text-[var(--text)] transition-colors duration-300">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">Your Segment Customer Analytics</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold">Customer Analytics</h1>
           <p className="text-sm text-[var(--text)] mt-1">Overview of customer health, segmentation and recommendations</p>
         </div>
         <div className="flex items-center gap-3">
-          <Input placeholder="Search customers..." value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input placeholder="Search customers..." value={q} onChange={(e) => setQ(e.target.value)}/>
           <Button onClick={() => setQ("")} className="hidden sm:inline-flex">Clear</Button>
         </div>
       </div>
 
       {/* Top Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <motion.div whileHover={{ y: -4 }} 
-        className={smallCard}
-        >
+        <motion.div whileHover={{ y: -4 }} className={smallCard}>
           <CardHeader className="p-0">
-            <CardTitle className="text-sm text-[var(--text)]">Total Customers In This Segment </CardTitle>
+            <CardTitle className="text-sm text-[var(--text)]">Total Customers</CardTitle>
           </CardHeader>
           <CardContent className="p-0 mt-2">
             <div className="text-2xl sm:text-3xl font-semibold">{stats.total}</div>
@@ -487,8 +439,6 @@ export default function SegmentCustomerAnalytics() {
                           <DialogClose className="mt-4 bg-[var(--primary)] text-white px-4 py-2 rounded">Close</DialogClose>
                         </DialogContent>
                       </Dialog>
-
-                      <Button size="sm" variant="ghost" className="text-[var(--text)]">Export</Button>
                     </div>
                   </td>
                 </tr>

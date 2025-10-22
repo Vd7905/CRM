@@ -41,7 +41,7 @@ function App() {
         />
 
         <Route
-          path="/segment-customers"
+          path="/segment-customers/:segmentId"
           element={
             <Layout>
               <SegmentCustomerAnalytics/>
