@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -13,29 +13,45 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Menu, LogOut, User, Settings } from "lucide-react";
+import api from "@/utils/axios";
 
 export function Header() {
-  // This should come from your auth context/state management
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // Change to true to test logged-in state
+  const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(true); 
   const [user, setUser] = useState({
     name: "John Doe",
     email: "john@example.com",
-    avatar: "" // Leave empty to show initials
+    avatar: "", // leave empty to show initials
   });
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    // Add your logout logic here (clear tokens, redirect, etc.)
-    console.log("Logging out...");
-  };
 
   const getUserInitials = (name) => {
     return name
       .split(" ")
-      .map(n => n[0])
+      .map((n) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handleLogout = async () => {
+    try {
+      // Call backend logout API
+      await api.post("/api/auth/logout");
+
+      // Clear frontend storage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      // Update state
+      setIsLoggedIn(false);
+      setUser(null);
+
+      // Redirect to login page
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      alert(err.response?.data?.message || "Logout failed");
+    }
   };
 
   return (
@@ -84,66 +100,59 @@ export function Header() {
           </NavLink>
         </nav>
 
-        {/* Desktop Actions: Login/Account + ThemeToggle */}
+        {/* Desktop Actions */}
         <div className="hidden md:flex items-center justify-evenly gap-4 flex-shrink-0 w-58">
           {isLoggedIn ? (
             <DropdownMenu>
-  <DropdownMenuTrigger asChild>
-    <Button
-      variant="ghost"
-      className="relative h-10 w-10 rounded-full"
-    >
-      <Avatar className="h-10 w-10">
-        <AvatarImage src={user.avatar} alt={user.name} />
-        <AvatarFallback className="bg-primary text-primary-foreground">
-          {getUserInitials(user.name)}
-        </AvatarFallback>
-      </Avatar>
-    </Button>
-  </DropdownMenuTrigger>
-  <DropdownMenuContent
-    className="w-56"
-    align="end"
-    forceMount
-    style={{
-      background: "var(--card)",       // dynamically uses current theme card
-      color: "var(--text)",            // dynamically uses current theme text
-      border: `1px solid var(--muted)`,
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)"
-    }}
-  >
-    <DropdownMenuLabel className="font-normal">
-      <div className="flex flex-col space-y-1">
-        <p className="text-sm font-medium leading-none">{user.name}</p>
-        <p className="text-xs leading-none text-[var(--foreground)]/70">
-          {user.email}
-        </p>
-      </div>
-    </DropdownMenuLabel>
-    <DropdownMenuSeparator className="border-[var(--muted)]" />
-    <DropdownMenuItem asChild>
-      <Link to="/" className="cursor-pointer flex items-center gap-2">
-        <User className="h-4 w-4" />
-        Profile
-      </Link>
-    </DropdownMenuItem>
-    <DropdownMenuItem asChild>
-      <Link to="/" className="cursor-pointer flex items-center gap-2">
-        <Settings className="h-4 w-4" />
-        Settings
-      </Link>
-    </DropdownMenuItem>
-    <DropdownMenuSeparator className="border-[var(--muted)]" />
-    <DropdownMenuItem
-      onClick={handleLogout}
-      className="cursor-pointer text-red-600 flex items-center gap-2"
-    >
-      <LogOut className="h-4 w-4" />
-      Logout
-    </DropdownMenuItem>
-  </DropdownMenuContent>
-</DropdownMenu>
-
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {getUserInitials(user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-56"
+                align="end"
+                forceMount
+                style={{
+                  background: "var(--card)",
+                  color: "var(--text)",
+                  border: `1px solid var(--muted)`,
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                }}
+              >
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                    <p className="text-xs leading-none text-[var(--foreground)]/70">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="border-[var(--muted)]" />
+                <DropdownMenuItem asChild>
+                  <Link to="/" className="cursor-pointer flex items-center gap-2">
+                    <User className="h-4 w-4" /> Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/" className="cursor-pointer flex items-center gap-2">
+                    <Settings className="h-4 w-4" /> Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="border-[var(--muted)]" />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="cursor-pointer text-red-600 flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" /> Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button asChild size="sm" className="rounded-full px-4">
               <Link to="/login">Login</Link>
@@ -165,22 +174,13 @@ export function Header() {
               className="flex flex-col gap-5 p-6 bg-background/95 backdrop-blur-lg"
             >
               {/* Mobile Nav Links */}
-              <NavLink
-                to="/"
-                className="text-base font-medium hover:text-primary transition-colors"
-              >
+              <NavLink to="/" className="text-base font-medium hover:text-primary transition-colors">
                 Dashboard
               </NavLink>
-              <NavLink
-                to="/campaigns"
-                className="text-base font-medium hover:text-primary transition-colors"
-              >
+              <NavLink to="/campaigns" className="text-base font-medium hover:text-primary transition-colors">
                 Campaigns
               </NavLink>
-              <NavLink
-                to="/customers"
-                className="text-base font-medium hover:text-primary transition-colors"
-              >
+              <NavLink to="/customers" className="text-base font-medium hover:text-primary transition-colors">
                 Customers
               </NavLink>
 
@@ -203,23 +203,16 @@ export function Header() {
                   </div>
                   <Button asChild variant="outline" className="rounded-full justify-start">
                     <Link to="/profile">
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
+                      <User className="mr-2 h-4 w-4" /> Profile
                     </Link>
                   </Button>
                   <Button asChild variant="outline" className="rounded-full justify-start">
                     <Link to="/settings">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
+                      <Settings className="mr-2 h-4 w-4" /> Settings
                     </Link>
                   </Button>
-                  <Button 
-                    onClick={handleLogout} 
-                    variant="destructive" 
-                    className="rounded-full justify-start"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
+                  <Button onClick={handleLogout} variant="destructive" className="rounded-full justify-start">
+                    <LogOut className="mr-2 h-4 w-4" /> Logout
                   </Button>
                 </>
               ) : (
@@ -235,3 +228,5 @@ export function Header() {
     </header>
   );
 }
+
+

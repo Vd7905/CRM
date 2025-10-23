@@ -2,17 +2,16 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: "http://localhost:8000", // backend base URL
-  withCredentials: true, // if you're using cookies or auth tokens
+  withCredentials: true, // needed if using cookies
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// ✅ Automatically attach manual token to all requests
-const manualToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4YzQ0NjRhYTU4ZWI2YjdmODM5NTRjMCIsImVtYWlsIjoidmlrYXNkaXhpdHRlbXBAZ21haWwuY29tIiwiaWF0IjoxNzYxMTU2OTAxLCJleHAiOjE3NjExNzQ5MDF9.MWi9PdkgbhWWWqRd1iRelbVUOiW2jUN_BXRba4HMBHk";
-
+// Attach token automatically from localStorage
 api.interceptors.request.use((config) => {
-  config.headers.Authorization = `Bearer ${manualToken}`;
+  const token = localStorage.getItem("token"); // get stored JWT
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 

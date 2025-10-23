@@ -90,81 +90,39 @@ export default function CustomerAnalytics() {
   }, [isPieChartInView]);
 
   // Handle CSV upload
-  const handleFileUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+const handleFileUpload = async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
 
-    setUploading(true);
-    try {
-      const text = await file.text();
-      
-      // Simple CSV parser (no external library needed)
-      const lines = text.split('\n').filter(line => line.trim());
-      if (lines.length < 2) {
-        alert('CSV file is empty or invalid');
-        setUploading(false);
-        return;
-      }
+  setUploading(true);
 
-      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-      const parsedCustomers = [];
+  try {
+    const formData = new FormData();
+    formData.append("file", file); // Make sure your backend expects 'file'
 
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-        const row = {};
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
-        });
+    const res = await api.post("/api/customer/insert-customers", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
 
-        const customer = {
-          _id: row._id || row.id || `customer-${Date.now()}-${i}`,
-          name: row.name || '',
-          email: row.email || '',
-          phone: row.phone || '',
-          address: {
-            city: row.city || row['address.city'] || row.address_city || '',
-            state: row.state || row['address.state'] || row.address_state || '',
-            country: row.country || row['address.country'] || row.address_country || 'India'
-          },
-          demographics: {
-            age: parseInt(row.age || row['demographics.age'] || row.demographics_age || 0),
-            gender: row.gender || row['demographics.gender'] || row.demographics_gender || '',
-            occupation: row.occupation || row['demographics.occupation'] || row.demographics_occupation || ''
-          },
-          stats: {
-            total_spent: parseFloat(row.total_spent || row['stats.total_spent'] || row.stats_total_spent || 0),
-            order_count: parseInt(row.order_count || row['stats.order_count'] || row.stats_order_count || 0),
-            last_purchase: row.last_purchase || row['stats.last_purchase'] || row.stats_last_purchase || null
-          },
-          tags: row.tags ? row.tags.split('|').map(t => t.trim()) : [],
-          is_active: row.is_active === 'true' || row.is_active === '1' || row.is_active === true,
-          churn_probability: parseFloat(row.churn_probability || 0),
-          recommendations: row.recommendations ? row.recommendations.split('|').map(r => r.trim()) : [],
-          cluster_id: parseInt(row.cluster_id || 0)
-        };
-
-        parsedCustomers.push(customer);
-      }
-      
-      if (parsedCustomers.length > 0) {
-        setCustomers(parsedCustomers);
-        alert(`Successfully uploaded ${parsedCustomers.length} customers!`);
-      } else {
-        alert('No valid customer data found in CSV');
-      }
-      
-      setUploading(false);
-    } catch (error) {
-      console.error('Error reading file:', error);
-      alert('Error reading file. Please check the CSV format and try again.');
-      setUploading(false);
+    if (res.data.success) {
+      alert(`Successfully inserted ${res.data.data?.length || 0} customers!`);
+      // Optionally, fetch customers again from backend
+      const refreshed = await api.post("/api/enrich/analyse-all");
+      if (refreshed.data && refreshed.data.data) setCustomers(refreshed.data.data);
+    } else {
+      alert(res.data.message || "Failed to insert customers");
     }
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+  } catch (err) {
+    console.error("CSV upload error:", err);
+    alert(err.response?.data?.message || "Failed to upload CSV");
+  } finally {
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+};
+
 
   // Derived metrics
   const stats = useMemo(() => {
@@ -590,3 +548,9 @@ export default function CustomerAnalytics() {
     </main>
   );
 }
+
+
+
+
+
+

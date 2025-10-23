@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
 import { Customer } from "../models/customer.model.js";
+import fs from "fs";
+import csv from "csv-parser";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 // Helper function for error handling
 const handleError = (res, error, message = "An error occurred") => {
@@ -214,3 +219,63 @@ export const getAllCustomers = async (req, res) => {
     });
   }
 };
+
+export const insertCustomers = asyncHandler(async (req, res) => {
+  // Check if file is provided
+  if (!req.file) {
+    throw new ApiError(400, "CSV file is required");
+  }
+
+  const customers = [];
+
+  // Read and parse CSV
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on("data", (row) => {
+      // Convert CSV row into Customer object format
+      customers.push({
+        name: row.name,
+        email: row.email,
+        phone: row.phone,
+        address: {
+          city: row.city,
+          state: row.state,
+          country: row.country,
+        },
+        stats: {
+          total_spent: Number(row.total_spent) || 0,
+          order_count: Number(row.order_count) || 0,
+          last_purchase: row.last_purchase
+            ? new Date(row.last_purchase)
+            : null,
+        },
+        is_active: row.is_active === "true" || row.is_active === "1",
+      });
+    })
+    .on("end", async () => {
+      try {
+        // Insert customers into DB
+        const result = await Customer.insertMany(customers, { ordered: false });
+
+        // Remove temp file after processing
+        fs.unlinkSync(req.file.path);
+
+        res
+          .status(201)
+          .json(
+            new ApiResponse(
+              201,
+              { inserted: result.length },
+              "Customers inserted successfully"
+            )
+          );
+      } catch (err) {
+        console.error("Insert error:", err);
+        throw new ApiError(500, "Failed to insert customers");
+      }
+    })
+    .on("error", (err) => {
+      console.error("CSV parse error:", err);
+      throw new ApiError(500, "Error parsing CSV file");
+    });
+});

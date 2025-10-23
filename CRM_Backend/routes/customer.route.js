@@ -1,5 +1,6 @@
 import { Router } from "express";
-
+import express from "express";
+import multer from "multer";
 import authenticate from "../middleware/auth.middleware.js";
 import {
   createCustomer,
@@ -8,10 +9,14 @@ import {
   getCustomer,
   getCustomers,
   updateCustomer,
+  insertCustomers
 } from "../controllers/customer.controller.js";
 
 const router = Router();
 
+const upload = multer({ dest: "uploads/" });
+
+router.post("/insert-customers", upload.single("file"), insertCustomers);
 router.route("/create").post(createCustomer);
 router.route("/").get(getCustomers);
 router.route("/get").get(getAllCustomers);
