@@ -5,12 +5,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
-import { FcGoogle } from "react-icons/fc";
+import { Eye, EyeOff, Lock, Mail, User, X } from "lucide-react";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import Interactive3DScene from "./3D/Interactive3DScene";
 import ThemeToggle from "./ThemeToggle/ThemeToggle";
 import api from "@/utils/axios";
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import { toast } from "sonner";
 
 export default function LoginForm() {
   const [name, setName] = useState("");
@@ -19,55 +19,90 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
 
   const navigate = useNavigate();
 
+  // ================= AUTH HANDLER =================
   const handleAuth = async () => {
-    if (!email || !password || (isSignup && !name)) 
-      return alert("Please fill in all fields");
+    if (!email || !password || (isSignup && !name)) {
+      return toast.error("Please fill in all fields");
+    }
 
     setIsLoading(true);
+    const endpoint = isSignup ? "/api/auth/signup" : "/api/auth/login";
+    const payload = isSignup ? { name, email, password } : { email, password };
 
-    try {
-      const endpoint = isSignup ? "/api/auth/signup" : "/api/auth/login";
-      const payload = isSignup ? { name, email, password } : { email, password };
-      const { data } = await api.post(endpoint, payload);
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      alert(`${isSignup ? "Signup" : "Login"} successful!`);
-      navigate("/");
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || "Authentication failed");
-    }
+    await toast.promise(
+      api.post(endpoint, payload),
+      {
+        loading: isSignup ? "Signing up..." : "Logging in...",
+        success: (res) => {
+          const user = res.data.data?.user;
+          const token = res.data.data?.accessToken;
+          localStorage.setItem("user", user.name);
+          localStorage.setItem("email", user.email);
+          localStorage.setItem("token",token)
+          navigate("/");
+          return isSignup ? "Signup successful!" : "Login successful!";
+        },
+        error: (err) => err.response?.data?.message || "Authentication failed",
+      }
+    );
 
     setIsLoading(false);
   };
 
+  // ================= GOOGLE LOGIN =================
   const handleGoogleLogin = async (credentialResponse) => {
-    if (!credentialResponse || !credentialResponse.credential) {
-      return alert("No Google token received");
+    if (!credentialResponse?.credential) {
+      return toast.error("No Google token received");
     }
 
-    try {
-      setIsLoading(true);
-      const { data } = await api.post("/api/auth/google-login", {
-        token: credentialResponse.credential,
-      });
-      const user = data.data?.user;
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(user.name));
+    setIsLoading(true);
+    await toast.promise(
+      api.post(
+        "/api/auth/google-login",
+        { token: credentialResponse.credential }
+      ),
+      {
+        loading: "Logging in with Google...",
+        success: (res) => {
+          const user = res.data.data?.user;
+          const token = res.data.data?.accessToken;
+          console.log(user)
+          localStorage.setItem("user", user.name);
+          localStorage.setItem("email", user.email);
+          localStorage.setItem("token", token)
+          navigate("/");
+          return "Google login successful!";
+        },
+        error: (err) => err.response?.data?.message || "Google login failed",
+      }
+    );
+    setIsLoading(false);
+  };
 
-      alert("Google login successful!");
-      navigate("/");
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || "Google login failed");
-    } finally {
-      setIsLoading(false);
-    }
+  // ================= FORGOT PASSWORD =================
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) return toast.error("Please enter your email");
+
+    setIsForgotLoading(true);
+    await toast.promise(
+      api.post("/api/auth/forgot-password", { email: forgotEmail }),
+      {
+        loading: "Sending reset link...",
+        success: (res) => {
+          setShowForgotModal(false);
+          setForgotEmail("");
+          return res.data.message || "Reset link sent!";
+        },
+        error: (err) => err.response?.data?.message || "Failed to send reset link",
+      }
+    );
+    setIsForgotLoading(false);
   };
 
   return (
@@ -105,7 +140,6 @@ export default function LoginForm() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
-                    {/* Name (only for signup) */}
                     {isSignup && (
                       <div className="space-y-2">
                         <Label htmlFor="name" className="text-sm font-medium text-[var(--foreground)]">Name</Label>
@@ -124,7 +158,6 @@ export default function LoginForm() {
                       </div>
                     )}
 
-                    {/* Email */}
                     <div className="space-y-2">
                       <Label htmlFor="email" className="text-sm font-medium text-[var(--foreground)]">Email</Label>
                       <div className="relative">
@@ -141,7 +174,6 @@ export default function LoginForm() {
                       </div>
                     </div>
 
-                    {/* Password */}
                     <div className="space-y-2">
                       <Label htmlFor="password" className="text-sm font-medium text-[var(--foreground)]">Password</Label>
                       <div className="relative">
@@ -160,12 +192,23 @@ export default function LoginForm() {
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--foreground)]/60 hover:text-[var(--foreground)] transition-colors"
                         >
-                          {showPassword ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
+
+                      {!isSignup && (
+                        <div className="text-right">
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotModal(true)}
+                            className="text-xs text-[var(--primary)] hover:text-[var(--secondary)] font-semibold"
+                          >
+                            Forgot password?
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Sign in/up button */}
                     <Button
                       onClick={handleAuth}
                       className="w-full h-10 bg-[var(--primary)] hover:bg-[var(--secondary)] text-[var(--card)] font-medium transition-all duration-300 transform hover:scale-[1.02]"
@@ -174,11 +217,10 @@ export default function LoginForm() {
                       {isLoading ? "Processing..." : isSignup ? "Sign Up" : "Sign In"}
                     </Button>
 
-                    {/* Google Auth button */}
                     <div>
                       <GoogleLogin
                         onSuccess={handleGoogleLogin}
-                        onError={() => alert("Google login failed")}
+                        onError={() => toast.error("Google login failed")}
                         theme=""
                         size="large"
                         shape="rectangular"
@@ -187,7 +229,6 @@ export default function LoginForm() {
                       />
                     </div>
 
-                    {/* Toggle Sign up/Login */}
                     <div className="text-center">
                       <button
                         onClick={() => setIsSignup(!isSignup)}
@@ -202,10 +243,41 @@ export default function LoginForm() {
             </div>
           </div>
         </div>
+
+        {/* ======= Forgot Password Modal ======= */}
+        {showForgotModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-[var(--card)] p-6 rounded-2xl shadow-2xl w-80 relative backdrop-blur-lg border border-[var(--border)]">
+              <button
+                onClick={() => setShowForgotModal(false)}
+                className="absolute top-3 right-3 text-[var(--foreground)]/70 hover:text-[var(--foreground)]"
+              >
+                <X size={18} />
+              </button>
+              <h2 className="text-lg font-bold mb-3 text-center text-[var(--foreground)]">
+                Reset Your Password
+              </h2>
+              <p className="text-sm text-center text-[var(--foreground)]/70 mb-4">
+                Enter your email and we’ll send you a password reset link.
+              </p>
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                className="mb-4 text-[var(--foreground)]"
+              />
+              <Button
+                onClick={handleForgotPassword}
+                disabled={isForgotLoading}
+                className="w-full h-10 bg-[var(--primary)] hover:bg-[var(--secondary)] text-[var(--card)] font-medium"
+              >
+                {isForgotLoading ? "Sending..." : "Send Reset Link"}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </GoogleOAuthProvider>
   );
 }
-
-
-

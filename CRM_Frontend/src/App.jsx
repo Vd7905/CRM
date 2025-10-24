@@ -6,6 +6,7 @@ import Campaigns from "@/pages/Campaigns";
 import CustomerAnalytics from "@/pages/CustomerAnalytics";
 import SegmentCustomerAnalytics from "@/pages/SegmentCustomerAnalytics"
 import Login from "./pages/LoginPage";
+import ResetPassword from "./pages/ResetPassword";
 
 function App() {
   return (
@@ -45,6 +46,15 @@ function App() {
           element={
             <Layout>
               <SegmentCustomerAnalytics/>
+            </Layout>
+          }
+        />
+
+        <Route
+          path="/reset-password/:token"
+          element={
+            <Layout>
+              <ResetPassword/>
             </Layout>
           }
         />

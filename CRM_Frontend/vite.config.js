@@ -14,4 +14,9 @@ export default defineConfig({
       "@": resolve(__dirname, "./src"),
     },
   },
+  server: {
+    host: true,   // <-- allows localhost AND 127.0.0.1
+    port: 5173,   // your dev port
+  },
+  
 });

@@ -1,6 +1,561 @@
-import React, { useMemo, useState, useRef } from "react";
+// import React, { useMemo, useState, useRef } from "react";
+// import { motion, useInView } from "framer-motion";
+// import { useEffect } from "react";
+// import api from "@/utils/axios";
+// import {
+//   ResponsiveContainer,
+//   BarChart,
+//   Bar,
+//   XAxis,
+//   YAxis,
+//   Tooltip,
+//   PieChart,
+//   Pie,
+//   Cell,
+//   AreaChart,
+//   Area,
+//   CartesianGrid,
+//   Legend,
+// } from "recharts";
+// import { Upload } from "lucide-react";
+
+// import { Button } from "@/components/ui/button";
+// import {
+//   Card,
+//   CardContent,
+//   CardHeader,
+//   CardTitle,
+// } from "@/components/ui/card";
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogHeader,
+//   DialogTitle,
+//   DialogTrigger,
+//   DialogClose,
+// } from "@/components/ui/dialog";
+// import { Input } from "@/components/ui/input";
+// import axios from "axios";
+
+// export default function CustomerAnalytics() {
+//   const [customers, setCustomers] = useState([]);
+//   const [q, setQ] = useState("");
+//   const [selectedCustomer, setSelectedCustomer] = useState(null);
+//   const [uploading, setUploading] = useState(false);
+//   const fileInputRef = useRef(null);
+
+  
+//   useEffect(() => {
+//     const fetchEnrichedCustomers = async () => {
+//       try {
+//         const res = await api.post("/api/enrich/analyse-all");
+//         console.log(res);
+//         if (res.data && res.data.data) {
+//           setCustomers(res.data.data);
+//         }
+//       } catch (err) {
+//         console.error("Failed to fetch enriched customers:", err);
+//       }
+//     };
+
+//     fetchEnrichedCustomers();
+//   }, []);
+
+//   // Refs for viewport detection and animation keys
+//   const barChartRef = useRef(null);
+//   const areaChartRef = useRef(null);
+//   const pieChartRef = useRef(null);
+
+//   // Animation keys that change when view status changes
+//   const [barKey, setBarKey] = useState(0);
+//   const [areaKey, setAreaKey] = useState(0);
+//   const [pieKey, setPieKey] = useState(0);
+
+//   // Check if elements are in viewport (70% visible)
+//   const isBarChartInView = useInView(barChartRef, { once: false, amount: 0.7 });
+//   const isAreaChartInView = useInView(areaChartRef, { once: false, amount: 0.7 });
+//   const isPieChartInView = useInView(pieChartRef, { once: false, amount: 0.7 });
+
+//   // Update keys when elements come into view to retrigger animations
+//   React.useEffect(() => {
+//     if (isBarChartInView) setBarKey(prev => prev + 1);
+//   }, [isBarChartInView]);
+
+//   React.useEffect(() => {
+//     if (isAreaChartInView) setAreaKey(prev => prev + 1);
+//   }, [isAreaChartInView]);
+
+//   React.useEffect(() => {
+//     if (isPieChartInView) setPieKey(prev => prev + 1);
+//   }, [isPieChartInView]);
+
+//   // Handle CSV upload
+// const handleFileUpload = async (event) => {
+//   const file = event.target.files?.[0];
+//   if (!file) return;
+
+//   setUploading(true);
+
+//   try {
+//     const formData = new FormData();
+//     formData.append("file", file); // Make sure your backend expects 'file'
+
+//     const res = await api.post("/api/customer/insert-customers", formData, {
+//       headers: {
+//         "Content-Type": "multipart/form-data",
+//       },
+//     });
+
+//     if (res.data.success) {
+//       alert(`Successfully inserted ${res.data.data?.length || 0} customers!`);
+//       // Optionally, fetch customers again from backend
+//       const refreshed = await api.post("/api/enrich/analyse-all");
+//       if (refreshed.data && refreshed.data.data) setCustomers(refreshed.data.data);
+//     } else {
+//       alert(res.data.message || "Failed to insert customers");
+//     }
+//   } catch (err) {
+//     console.error("CSV upload error:", err);
+//     alert(err.response?.data?.message || "Failed to upload CSV");
+//   } finally {
+//     setUploading(false);
+//     if (fileInputRef.current) fileInputRef.current.value = '';
+//   }
+// };
+
+
+//   // Derived metrics
+//   const stats = useMemo(() => {
+//     const total = customers.length;
+//     const active = customers.filter((c) => c.is_active).length;
+//     const totalSpent = customers.reduce((s, c) => s + (c.stats?.total_spent || 0), 0);
+//     const avgSpend = total ? Math.round(totalSpent / total) : 0;
+//     const avgOrders = total ? (customers.reduce((s, c) => s + (c.stats?.order_count || 0), 0) / total).toFixed(1) : 0;
+//     const avgChurn = total ? (customers.reduce((s, c) => s + (c.churn_probability || 0), 0) / total) : 0;
+//     return { total, active, totalSpent, avgSpend, avgOrders, avgChurn: Number(avgChurn.toFixed(2)) };
+//   }, [customers]);
+
+//   // Tag distribution for pie chart
+//   const tagDistribution = useMemo(() => {
+//     const map = {};
+//     customers.forEach((c) => {
+//       (c.tags || []).forEach((t) => {
+//         map[t] = (map[t] || 0) + 1;
+//       });
+//     });
+//     return Object.entries(map).map(([name, value]) => ({ name, value }));
+//   }, [customers]);
+
+//   // Spend per customer for bar chart
+//   const spendData = useMemo(() => {
+//     return customers.map((c) => ({
+//       name: c.name,
+//       spent: c.stats?.total_spent || 0,
+//       orders: c.stats?.order_count || 0,
+//     }));
+//   }, [customers]);
+
+//   // Timeline sample (made from last_purchase) for area chart
+//   const timelineData = useMemo(() => {
+//     const monthMap = {};
+//     customers.forEach((c) => {
+//       const d = c.stats?.last_purchase ? new Date(c.stats.last_purchase) : null;
+//       const key = d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` : "No Purchase";
+//       monthMap[key] = (monthMap[key] || 0) + (c.stats?.total_spent || 0);
+//     });
+//     const arr = Object.entries(monthMap).map(([k, v]) => ({ month: k, total: v }));
+//     arr.sort((a, b) => (a.month > b.month ? 1 : -1));
+//     if (arr.length === 0) {
+//       return [
+//         { month: "2025-01", total: 0 },
+//         { month: "2025-02", total: 0 },
+//         { month: "2025-03", total: 0 },
+//       ];
+//     }
+//     return arr;
+//   }, [customers]);
+
+//   const filteredCustomers = useMemo(() => {
+//     const qq = q.trim().toLowerCase();
+//     if (!qq) return customers;
+//     return customers.filter(
+//       (c) =>
+//         c.name.toLowerCase().includes(qq) ||
+//         (c.email || "").toLowerCase().includes(qq) ||
+//         (c.phone || "").toLowerCase().includes(qq)
+//     );
+//   }, [q, customers]);
+
+//   const smallCard = "rounded-2xl p-4 sm:p-6 border border-[var(--muted)] bg-[var(--card)]";
+
+//   return (
+//     <main className="flex-1 p-4 sm:p-6 bg-[var(--background)] text-[var(--text)] transition-colors duration-300">
+//       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+//         <div>
+//           <h1 className="text-2xl sm:text-3xl font-semibold">Customer Analytics</h1>
+//           <p className="text-sm text-[var(--text)] mt-1">Overview of customer health, segmentation and recommendations</p>
+//         </div>
+//         <div className="flex items-center gap-3">
+//           <Input placeholder="Search customers..." value={q} onChange={(e) => setQ(e.target.value)}/>
+//           <input
+//             type="file"
+//             ref={fileInputRef}
+//             onChange={handleFileUpload}
+//             accept=".csv"
+//             style={{ display: 'none' }}
+//           />
+//           <Button 
+//             onClick={() => fileInputRef.current?.click()}
+//             disabled={uploading}
+//             className="gap-2"
+//           >
+//             <Upload className="w-4 h-4" />
+//             {uploading ? 'Uploading...' : 'Upload CSV'}
+//           </Button>
+//         </div>
+//       </div>
+
+//       {/* Top Stat Cards */}
+//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+//         <motion.div whileHover={{ y: -4 }} className={smallCard}>
+//           <CardHeader className="p-0">
+//             <CardTitle className="text-sm text-[var(--text)]">Total Customers</CardTitle>
+//           </CardHeader>
+//           <CardContent className="p-0 mt-2">
+//             <div className="text-2xl sm:text-3xl font-semibold">{stats.total}</div>
+//             <div className="text-xs text-[var(--text)] mt-1">Active: {stats.active}</div>
+//           </CardContent>
+//         </motion.div>
+
+//         <motion.div whileHover={{ y: -4 }} className={smallCard}>
+//           <CardHeader className="p-0">
+//             <CardTitle className="text-sm text-[var(--text)]">Avg Spend</CardTitle>
+//           </CardHeader>
+//           <CardContent className="p-0 mt-2">
+//             <div className="text-2xl sm:text-3xl font-semibold">₹{stats.avgSpend.toLocaleString()}</div>
+//             <div className="text-xs text-[var(--text)] mt-1">Total: ₹{stats.totalSpent.toLocaleString()}</div>
+//           </CardContent>
+//         </motion.div>
+
+//         <motion.div whileHover={{ y: -4 }} className={smallCard}>
+//           <CardHeader className="p-0">
+//             <CardTitle className="text-sm text-[var(--text)]">Avg Orders</CardTitle>
+//           </CardHeader>
+//           <CardContent className="p-0 mt-2">
+//             <div className="text-2xl sm:text-3xl font-semibold">{stats.avgOrders}</div>
+//             <div className="text-xs text-[var(--text)] mt-1">Per customer</div>
+//           </CardContent>
+//         </motion.div>
+
+//         <motion.div whileHover={{ y: -4 }} className={smallCard}>
+//           <CardHeader className="p-0">
+//             <CardTitle className="text-sm text-[var(--text)]">Avg Churn Probability</CardTitle>
+//           </CardHeader>
+//           <CardContent className="p-0 mt-2">
+//             <div className="text-2xl sm:text-3xl font-semibold">{Math.round(stats.avgChurn * 100)}%</div>
+//             <div className="text-xs text-[var(--text)] mt-1">Lower is better</div>
+//           </CardContent>
+//         </motion.div>
+//       </div>
+
+//       {/* Main Grid: Charts + Table + Recommendations */}
+//       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+//         {/* Left column: spend bar + area timeline */}
+//         <div className="lg:col-span-2 space-y-6">
+//           <div ref={barChartRef}>
+//             <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden shadow-sm">
+//               <CardHeader className="p-4 sm:p-6">
+//                 <CardTitle className="text-sm text-[var(--text)] opacity-70">Spend by Customer</CardTitle>
+//               </CardHeader>
+//               <CardContent className="p-4 sm:p-6 text-[var(--text)]">
+//                 <div style={{ height: 280 }}>
+//                   <ResponsiveContainer width="100%" height="100%" key={barKey}>
+//                     <BarChart data={spendData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }} barGap={8}>
+//                       <defs>
+//                         <linearGradient id="spentGradient" x1="0" y1="0" x2="0" y2="1">
+//                           <stop offset="0%" stopColor="var(--primary)" stopOpacity={1} />
+//                           <stop offset="100%" stopColor="var(--purple-secondary)" stopOpacity={0.8} />
+//                         </linearGradient>
+//                         <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
+//                           <stop offset="0%" stopColor="var(--blue-primary)" stopOpacity={1} />
+//                           <stop offset="100%" stopColor="var(--blue-secondary)" stopOpacity={0.8} />
+//                         </linearGradient>
+//                       </defs>
+//                       <CartesianGrid strokeDasharray="3 3" stroke="var(--muted)" opacity={0.15} vertical={false} />
+//                       <XAxis 
+//                         dataKey="name" 
+//                         tick={{ fill: "var(--text)", fontSize: 12 }} 
+//                         axisLine={{ stroke: "var(--muted)", strokeWidth: 1 }}
+//                         tickLine={false}
+//                       />
+//                       <YAxis 
+//                         tick={{ fill: "var(--text)", fontSize: 12 }} 
+//                         axisLine={{ stroke: "var(--muted)", strokeWidth: 1 }}
+//                         tickLine={false}
+//                       />
+//                       <Tooltip 
+//                         cursor={{ fill: "var(--muted)", opacity: 0.1 }}
+//                         contentStyle={{ 
+//                           background: "var(--card)", 
+//                           border: "1px solid var(--muted)",
+//                           borderRadius: "8px",
+//                           color: "var(--text)",
+//                           boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+//                         }}
+//                         labelStyle={{ color: "var(--text)", fontWeight: "600", marginBottom: "4px" }}
+//                         itemStyle={{ color: "var(--text)", padding: "2px 0" }}
+//                       />
+//                       <Legend 
+//                         wrapperStyle={{ color: "var(--text)", paddingTop: "10px" }} 
+//                         iconType="circle"
+//                       />
+//                       <Bar 
+//                         dataKey="spent" 
+//                         fill="url(#spentGradient)" 
+//                         radius={[8, 8, 0, 0]} 
+//                         name="Total Spent (₹)"
+//                         maxBarSize={60}
+//                         animationBegin={0}
+//                         animationDuration={800}
+//                         isAnimationActive={true}
+//                       />
+//                     </BarChart>
+//                   </ResponsiveContainer>
+//                 </div>
+//               </CardContent>
+//             </Card>
+//           </div>
+
+//           <div ref={areaChartRef}>
+//             <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
+//               <CardHeader className="p-4 sm:p-6">
+//                 <CardTitle className="text-sm text-[var(--text)]">Purchase Timeline</CardTitle>
+//               </CardHeader>
+//               <CardContent className="p-4 sm:p-6 text-[var(--text)]">
+//                 <div style={{ height: 220 }}>
+//                   <ResponsiveContainer width="100%" height="100%" key={areaKey}>
+//                     <AreaChart data={timelineData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+//                       <defs>
+//                         <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+//                           <stop offset="0%" stopColor="var(--green-primary)" stopOpacity={0.6} />
+//                           <stop offset="100%" stopColor="var(--green-primary)" stopOpacity={0.05} />
+//                         </linearGradient>
+//                       </defs>
+//                       <XAxis dataKey="month" tick={{ fill: "var(--text)" }} />
+//                       <YAxis tick={{ fill: "var(--text)" }} />
+//                       <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--muted)" }} />
+//                       <Area 
+//                         type="monotone" 
+//                         dataKey="total" 
+//                         stroke="var(--green-primary)" 
+//                         fill="url(#colorTotal)"
+//                         animationBegin={0}
+//                         animationDuration={1000}
+//                         isAnimationActive={true}
+//                       />
+//                     </AreaChart>
+//                   </ResponsiveContainer>
+//                 </div>
+//               </CardContent>
+//             </Card>
+//           </div>
+//         </div>
+
+//         {/* Right column: Pie (tags) + recommendations + customers table snippet */}
+//         <aside className="space-y-6">
+//           <div ref={pieChartRef}>
+//             <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
+//               <CardHeader className="p-4 sm:p-6">
+//                 <CardTitle className="text-sm text-[var(--text)]">Tag Distribution</CardTitle>
+//               </CardHeader>
+//               <CardContent className="p-4 sm:p-6">
+//                 <div style={{ height: 220 }}>
+//                   <ResponsiveContainer width="100%" height="100%" key={pieKey}>
+//                     <PieChart>
+//                       <Pie
+//                         dataKey="value"
+//                         data={tagDistribution}
+//                         innerRadius={48}
+//                         outerRadius={80}
+//                         paddingAngle={4}
+//                         label
+//                         animationBegin={0}
+//                         animationDuration={800}
+//                         isAnimationActive={true}
+//                       >
+//                         {tagDistribution.map((entry, idx) => (
+//                           <Cell key={`cell-${idx}`} fill={idx % 2 === 0 ? "var(--primary)" : "var(--secondary)"} />
+//                         ))}
+//                       </Pie>
+//                       <Tooltip 
+//                         contentStyle={{ 
+//                           background: "var(--card)", 
+//                           border: "1px solid var(--muted)",
+//                           borderRadius: "8px",
+//                           color: "var(--text)",
+//                           boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+//                           padding: "8px 12px"
+//                         }}
+//                         itemStyle={{ color: "var(--text)", fontWeight: "500" }}
+//                       />
+//                       <Legend verticalAlign="bottom" wrapperStyle={{ color: "var(--muted)" }} iconType="circle" />
+//                     </PieChart>
+//                   </ResponsiveContainer>
+//                 </div>
+//               </CardContent>
+//             </Card>
+//           </div>
+
+//           <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)]">
+//             <CardHeader className="p-4 sm:p-6 ">
+//               <CardTitle className="text-sm text-[var(--text)]">Top Recommendations</CardTitle>
+//             </CardHeader>
+//             <CardContent className="p-4 sm:p-6 space-y-3 text-[var(--text)]">
+//               {Array.from(
+//                 new Set(customers.flatMap((c) => c.recommendations || ["No recommendations."]))
+//               ).map((rec, idx) => (
+//                 <motion.div
+//                   key={idx}
+//                   whileHover={{ scale: 1.02 }}
+//                   className="rounded-lg p-3 bg-[var(--background)]/30 border border-[var(--muted)]"
+//                 >
+//                   <div className="text-sm">{rec}</div>
+//                 </motion.div>
+//               ))}
+//             </CardContent>
+//           </Card>
+
+//           <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
+//             <CardHeader className="p-4 sm:p-6">
+//               <CardTitle className="text-sm text-[var(--text)]">Recent Customers</CardTitle>
+//             </CardHeader>
+//             <CardContent className="p-4 sm:p-6 text-[var(--text)]">
+//               <div className="flex flex-col gap-3">
+//                 {customers.slice(0, 4).map((c) => (
+//                   <motion.button
+//                     key={c._id}
+//                     onClick={() => setSelectedCustomer(c)}
+//                     whileHover={{ x: 4 }}
+//                     className="text-left w-full rounded-md p-3 bg-[var(--background)]/20 border border-[var(--muted)]"
+//                   >
+//                     <div className="flex items-center justify-between">
+//                       <div>
+//                         <div className="font-medium">{c.name}</div>
+//                         <div className="text-xs text-[var(--text)]">{c.email}</div>
+//                       </div>
+//                       <div className="text-xs text-[var(--text)]">{c.stats?.total_spent ? `₹${c.stats.total_spent}` : "—"}</div>
+//                     </div>
+//                   </motion.button>
+//                 ))}
+//                 <Button variant="ghost" onClick={() => setSelectedCustomer(null)}>View All</Button>
+//               </div>
+//             </CardContent>
+//           </Card>
+//         </aside>
+//       </div>
+
+//       {/* Customers Table */}
+//       <div className="mt-6 rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
+//         <div className="p-4 sm:p-6 border-b border-[var(--muted)]">
+//           <div className="flex items-center justify-between">
+//             <h3 className="text-sm text-[var(--text)]">All Customers</h3>
+//             <div className="text-xs text-[var(--text)]">Showing {filteredCustomers.length} results</div>
+//           </div>
+//         </div>
+//         <div className="overflow-x-auto">
+//           <table className="min-w-full text-sm sm:text-base">
+//             <thead className="bg-[var(--muted)]/20">
+//               <tr>
+//                 <th className="px-4 py-3 text-left">Name</th>
+//                 <th className="px-4 py-3 text-left">Email</th>
+//                 <th className="px-4 py-3 text-left">City</th>
+//                 <th className="px-4 py-3 text-left">Orders</th>
+//                 <th className="px-4 py-3 text-left">Spent</th>
+//                 <th className="px-4 py-3 text-left">Churn %</th>
+//                 <th className="px-4 py-3 text-left">Actions</th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               {filteredCustomers.map((c) => (
+//                 <tr key={c._id} className="border-t border-[var(--muted)] hover:bg-[var(--muted)]/10 transition-colors">
+//                   <td className="px-4 py-3">{c.name}</td>
+//                   <td className="px-4 py-3">{c.email}</td>
+//                   <td className="px-4 py-3">{c.address?.city || "—"}</td>
+//                   <td className="px-4 py-3">{c.stats?.order_count ?? 0}</td>
+//                   <td className="px-4 py-3">₹{(c.stats?.total_spent || 0).toLocaleString()}</td>
+//                   <td className="px-4 py-3">{Math.round((c.churn_probability || 0) * 100)}%</td>
+//                   <td className="px-4 py-3">
+//                     <div className="flex gap-2">
+//                       <Dialog>
+//                         <DialogTrigger asChild>
+//                           <Button size="sm" variant="outline" className="border-[var(--muted)] text-[var(--text)]">View</Button>
+//                         </DialogTrigger>
+//                         <DialogContent className="sm:max-w-lg">
+//                           <DialogHeader>
+//                             <DialogTitle>{c.name}</DialogTitle>
+//                           </DialogHeader>
+//                           <div className="space-y-2">
+//                             <div><strong>Email:</strong> {c.email}</div>
+//                             <div><strong>Phone:</strong> {c.phone}</div>
+//                             <div><strong>City:</strong> {c.address?.city}</div>
+//                             <div><strong>Occupation:</strong> {c.demographics?.occupation}</div>
+//                             <div><strong>Orders:</strong> {c.stats?.order_count}</div>
+//                             <div><strong>Total Spent:</strong> ₹{c.stats?.total_spent}</div>
+//                             <div><strong>Churn Prob:</strong> {Math.round((c.churn_probability || 0) * 100)}%</div>
+//                             <div><strong>Recommendations:</strong>
+//                               <ul className="list-disc pl-5">
+//                                 {(c.recommendations || []).map((r, i) => <li key={i}>{r}</li>)}
+//                               </ul>
+//                             </div>
+//                           </div>
+//                           <DialogClose className="mt-4 bg-[var(--primary)] text-white px-4 py-2 rounded">Close</DialogClose>
+//                         </DialogContent>
+//                       </Dialog>
+//                     </div>
+//                   </td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         </div>
+//       </div>
+
+//       {/* Selected customer quick drawer */}
+//       <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
+//         <DialogContent className="sm:max-w-md">
+//           <DialogHeader>
+//             <DialogTitle>{selectedCustomer?.name || "Customer"}</DialogTitle>
+//           </DialogHeader>
+//           {selectedCustomer ? (
+//             <div className="space-y-3">
+//               <div><strong>Email:</strong> {selectedCustomer.email}</div>
+//               <div><strong>Phone:</strong> {selectedCustomer.phone}</div>
+//               <div><strong>City:</strong> {selectedCustomer.address?.city}</div>
+//               <div><strong>Tags:</strong> {(selectedCustomer.tags || []).join(", ")}</div>
+//               <div><strong>Churn Prob:</strong> {Math.round((selectedCustomer.churn_probability || 0) * 100)}%</div>
+//               <div><strong>Recommendations:</strong>
+//                 <ul className="list-disc pl-5">
+//                   {(selectedCustomer.recommendations || []).map((r, i) => <li key={i}>{r}</li>)}
+//                 </ul>
+//               </div>
+//             </div>
+//           ) : (
+//             <div>No customer selected</div>
+//           )}
+//           <DialogClose className="mt-4 bg-[var(--primary)] text-white px-4 py-2 rounded">Close</DialogClose>
+//         </DialogContent>
+//       </Dialog>
+//     </main>
+//   );
+// }
+
+
+
+
+
+
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
-import { useEffect } from "react";
 import api from "@/utils/axios";
 import {
   ResponsiveContainer,
@@ -18,6 +573,7 @@ import {
   Legend,
 } from "recharts";
 import { Upload } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +591,6 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import axios from "axios";
 
 export default function CustomerAnalytics() {
   const [customers, setCustomers] = useState([]);
@@ -44,85 +599,79 @@ export default function CustomerAnalytics() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
-  
+  // Fetch enriched customers
+  const fetchedOnce = useRef(false);
   useEffect(() => {
+    if(fetchedOnce.current) return;
+    fetchedOnce.current = true;
     const fetchEnrichedCustomers = async () => {
-      try {
-        const res = await api.post("/api/enrich/analyse-all");
-        console.log(res);
-        if (res.data && res.data.data) {
-          setCustomers(res.data.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch enriched customers:", err);
+     toast.promise(
+      api.post("/api/enrich/analyse-all"),
+      {
+        loading: "Fetching customer data...",
+        success: (res) => {
+          if (res.data && res.data.data) {
+            setCustomers(res.data.data);
+            return `Fetched ${res.data.data.length} customers successfully!`;
+          }
+          return "No customers found";
+        },
+        error: "Failed to fetch enriched customers",
       }
+    );
     };
-
     fetchEnrichedCustomers();
   }, []);
 
-  // Refs for viewport detection and animation keys
+  // Refs for charts
   const barChartRef = useRef(null);
   const areaChartRef = useRef(null);
   const pieChartRef = useRef(null);
 
-  // Animation keys that change when view status changes
   const [barKey, setBarKey] = useState(0);
   const [areaKey, setAreaKey] = useState(0);
   const [pieKey, setPieKey] = useState(0);
 
-  // Check if elements are in viewport (70% visible)
   const isBarChartInView = useInView(barChartRef, { once: false, amount: 0.7 });
   const isAreaChartInView = useInView(areaChartRef, { once: false, amount: 0.7 });
   const isPieChartInView = useInView(pieChartRef, { once: false, amount: 0.7 });
 
-  // Update keys when elements come into view to retrigger animations
-  React.useEffect(() => {
-    if (isBarChartInView) setBarKey(prev => prev + 1);
-  }, [isBarChartInView]);
+  useEffect(() => { if (isBarChartInView) setBarKey(prev => prev + 1); }, [isBarChartInView]);
+  useEffect(() => { if (isAreaChartInView) setAreaKey(prev => prev + 1); }, [isAreaChartInView]);
+  useEffect(() => { if (isPieChartInView) setPieKey(prev => prev + 1); }, [isPieChartInView]);
 
-  React.useEffect(() => {
-    if (isAreaChartInView) setAreaKey(prev => prev + 1);
-  }, [isAreaChartInView]);
+  // CSV upload
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  React.useEffect(() => {
-    if (isPieChartInView) setPieKey(prev => prev + 1);
-  }, [isPieChartInView]);
+    setUploading(true);
+    const loadingToast = toast.loading("Uploading CSV...");
 
-  // Handle CSV upload
-const handleFileUpload = async (event) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-  setUploading(true);
+      const res = await api.post("/api/customer/insert-customers", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-  try {
-    const formData = new FormData();
-    formData.append("file", file); // Make sure your backend expects 'file'
-
-    const res = await api.post("/api/customer/insert-customers", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-
-    if (res.data.success) {
-      alert(`Successfully inserted ${res.data.data?.length || 0} customers!`);
-      // Optionally, fetch customers again from backend
-      const refreshed = await api.post("/api/enrich/analyse-all");
-      if (refreshed.data && refreshed.data.data) setCustomers(refreshed.data.data);
-    } else {
-      alert(res.data.message || "Failed to insert customers");
+      if (res.data.success) {
+        toast.success(`Successfully inserted ${res.data.data?.length || 0} customers!`);
+        const refreshed = await api.post("/api/enrich/analyse-all");
+        if (refreshed.data && refreshed.data.data) setCustomers(refreshed.data.data);
+      } else {
+        toast.error(res.data.message || "Failed to insert customers");
+      }
+    } catch (err) {
+      console.error("CSV upload error:", err);
+      toast.error(err.response?.data?.message || "Failed to upload CSV");
+    } finally {
+      setUploading(false);
+      toast.dismiss(loadingToast);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  } catch (err) {
-    console.error("CSV upload error:", err);
-    alert(err.response?.data?.message || "Failed to upload CSV");
-  } finally {
-    setUploading(false);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  }
-};
-
+  };
 
   // Derived metrics
   const stats = useMemo(() => {
@@ -135,27 +684,18 @@ const handleFileUpload = async (event) => {
     return { total, active, totalSpent, avgSpend, avgOrders, avgChurn: Number(avgChurn.toFixed(2)) };
   }, [customers]);
 
-  // Tag distribution for pie chart
   const tagDistribution = useMemo(() => {
     const map = {};
-    customers.forEach((c) => {
-      (c.tags || []).forEach((t) => {
-        map[t] = (map[t] || 0) + 1;
-      });
-    });
+    customers.forEach((c) => (c.tags || []).forEach((t) => { map[t] = (map[t] || 0) + 1; }));
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [customers]);
 
-  // Spend per customer for bar chart
-  const spendData = useMemo(() => {
-    return customers.map((c) => ({
-      name: c.name,
-      spent: c.stats?.total_spent || 0,
-      orders: c.stats?.order_count || 0,
-    }));
-  }, [customers]);
+  const spendData = useMemo(() => customers.map((c) => ({
+    name: c.name,
+    spent: c.stats?.total_spent || 0,
+    orders: c.stats?.order_count || 0,
+  })), [customers]);
 
-  // Timeline sample (made from last_purchase) for area chart
   const timelineData = useMemo(() => {
     const monthMap = {};
     customers.forEach((c) => {
@@ -165,13 +705,7 @@ const handleFileUpload = async (event) => {
     });
     const arr = Object.entries(monthMap).map(([k, v]) => ({ month: k, total: v }));
     arr.sort((a, b) => (a.month > b.month ? 1 : -1));
-    if (arr.length === 0) {
-      return [
-        { month: "2025-01", total: 0 },
-        { month: "2025-02", total: 0 },
-        { month: "2025-03", total: 0 },
-      ];
-    }
+    if (arr.length === 0) return [{ month: "2025-01", total: 0 }, { month: "2025-02", total: 0 }, { month: "2025-03", total: 0 }];
     return arr;
   }, [customers]);
 
@@ -190,6 +724,7 @@ const handleFileUpload = async (event) => {
 
   return (
     <main className="flex-1 p-4 sm:p-6 bg-[var(--background)] text-[var(--text)] transition-colors duration-300">
+      {/* Header + CSV upload */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold">Customer Analytics</h1>
@@ -197,20 +732,9 @@ const handleFileUpload = async (event) => {
         </div>
         <div className="flex items-center gap-3">
           <Input placeholder="Search customers..." value={q} onChange={(e) => setQ(e.target.value)}/>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept=".csv"
-            style={{ display: 'none' }}
-          />
-          <Button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            {uploading ? 'Uploading...' : 'Upload CSV'}
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" style={{ display: 'none' }}/>
+          <Button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-2">
+            <Upload className="w-4 h-4" /> {uploading ? 'Uploading...' : 'Upload CSV'}
           </Button>
         </div>
       </div>
@@ -218,9 +742,7 @@ const handleFileUpload = async (event) => {
       {/* Top Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <motion.div whileHover={{ y: -4 }} className={smallCard}>
-          <CardHeader className="p-0">
-            <CardTitle className="text-sm text-[var(--text)]">Total Customers</CardTitle>
-          </CardHeader>
+          <CardHeader className="p-0"><CardTitle className="text-sm text-[var(--text)]">Total Customers</CardTitle></CardHeader>
           <CardContent className="p-0 mt-2">
             <div className="text-2xl sm:text-3xl font-semibold">{stats.total}</div>
             <div className="text-xs text-[var(--text)] mt-1">Active: {stats.active}</div>
@@ -228,9 +750,7 @@ const handleFileUpload = async (event) => {
         </motion.div>
 
         <motion.div whileHover={{ y: -4 }} className={smallCard}>
-          <CardHeader className="p-0">
-            <CardTitle className="text-sm text-[var(--text)]">Avg Spend</CardTitle>
-          </CardHeader>
+          <CardHeader className="p-0"><CardTitle className="text-sm text-[var(--text)]">Avg Spend</CardTitle></CardHeader>
           <CardContent className="p-0 mt-2">
             <div className="text-2xl sm:text-3xl font-semibold">₹{stats.avgSpend.toLocaleString()}</div>
             <div className="text-xs text-[var(--text)] mt-1">Total: ₹{stats.totalSpent.toLocaleString()}</div>
@@ -238,9 +758,7 @@ const handleFileUpload = async (event) => {
         </motion.div>
 
         <motion.div whileHover={{ y: -4 }} className={smallCard}>
-          <CardHeader className="p-0">
-            <CardTitle className="text-sm text-[var(--text)]">Avg Orders</CardTitle>
-          </CardHeader>
+          <CardHeader className="p-0"><CardTitle className="text-sm text-[var(--text)]">Avg Orders</CardTitle></CardHeader>
           <CardContent className="p-0 mt-2">
             <div className="text-2xl sm:text-3xl font-semibold">{stats.avgOrders}</div>
             <div className="text-xs text-[var(--text)] mt-1">Per customer</div>
@@ -248,309 +766,299 @@ const handleFileUpload = async (event) => {
         </motion.div>
 
         <motion.div whileHover={{ y: -4 }} className={smallCard}>
-          <CardHeader className="p-0">
-            <CardTitle className="text-sm text-[var(--text)]">Avg Churn Probability</CardTitle>
-          </CardHeader>
+          <CardHeader className="p-0"><CardTitle className="text-sm text-[var(--text)]">Avg Churn Probability</CardTitle></CardHeader>
           <CardContent className="p-0 mt-2">
             <div className="text-2xl sm:text-3xl font-semibold">{Math.round(stats.avgChurn * 100)}%</div>
             <div className="text-xs text-[var(--text)] mt-1">Lower is better</div>
           </CardContent>
         </motion.div>
       </div>
+ <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+   {/* Left column: spend bar + area timeline */}
+   <div className="lg:col-span-2 space-y-6">
+     <div ref={barChartRef}>
+       <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden shadow-sm">
+         <CardHeader className="p-4 sm:p-6">
+           <CardTitle className="text-sm text-[var(--text)] opacity-70">Spend by Customer</CardTitle>
+         </CardHeader>
+         <CardContent className="p-4 sm:p-6 text-[var(--text)]">
+           <div style={{ height: 280 }}>
+             <ResponsiveContainer width="100%" height="100%" key={barKey}>
+               <BarChart data={spendData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }} barGap={8}>
+                 <defs>
+                   <linearGradient id="spentGradient" x1="0" y1="0" x2="0" y2="1">
+                     <stop offset="0%" stopColor="var(--primary)" stopOpacity={1} />
+                     <stop offset="100%" stopColor="var(--purple-secondary)" stopOpacity={0.8} />
+                   </linearGradient>
+                   <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
+                     <stop offset="0%" stopColor="var(--blue-primary)" stopOpacity={1} />
+                     <stop offset="100%" stopColor="var(--blue-secondary)" stopOpacity={0.8} />
+                   </linearGradient>
+                 </defs>
+                 <CartesianGrid strokeDasharray="3 3" stroke="var(--muted)" opacity={0.15} vertical={false} />
+                 <XAxis 
+                   dataKey="name" 
+                   tick={{ fill: "var(--text)", fontSize: 12 }} 
+                   axisLine={{ stroke: "var(--muted)", strokeWidth: 1 }}
+                   tickLine={false}
+                 />
+                 <YAxis 
+                   tick={{ fill: "var(--text)", fontSize: 12 }} 
+                   axisLine={{ stroke: "var(--muted)", strokeWidth: 1 }}
+                   tickLine={false}
+                 />
+                 <Tooltip 
+                   cursor={{ fill: "var(--muted)", opacity: 0.1 }}
+                   contentStyle={{ 
+                     background: "var(--card)", 
+                     border: "1px solid var(--muted)",
+                     borderRadius: "8px",
+                     color: "var(--text)",
+                     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+                   }}
+                   labelStyle={{ color: "var(--text)", fontWeight: "600", marginBottom: "4px" }}
+                   itemStyle={{ color: "var(--text)", padding: "2px 0" }}
+                 />
+                 <Legend 
+                   wrapperStyle={{ color: "var(--text)", paddingTop: "10px" }} 
+                   iconType="circle"
+                 />
+                 <Bar 
+                   dataKey="spent" 
+                   fill="url(#spentGradient)" 
+                   radius={[8, 8, 0, 0]} 
+                   name="Total Spent (₹)"
+                   maxBarSize={60}
+                   animationBegin={0}
+                   animationDuration={800}
+                   isAnimationActive={true}
+                 />
+               </BarChart>
+             </ResponsiveContainer>
+           </div>
+         </CardContent>
+       </Card>
+     </div>
 
-      {/* Main Grid: Charts + Table + Recommendations */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column: spend bar + area timeline */}
-        <div className="lg:col-span-2 space-y-6">
-          <div ref={barChartRef}>
-            <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden shadow-sm">
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-sm text-[var(--text)] opacity-70">Spend by Customer</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 text-[var(--text)]">
-                <div style={{ height: 280 }}>
-                  <ResponsiveContainer width="100%" height="100%" key={barKey}>
-                    <BarChart data={spendData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }} barGap={8}>
-                      <defs>
-                        <linearGradient id="spentGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--primary)" stopOpacity={1} />
-                          <stop offset="100%" stopColor="var(--purple-secondary)" stopOpacity={0.8} />
-                        </linearGradient>
-                        <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--blue-primary)" stopOpacity={1} />
-                          <stop offset="100%" stopColor="var(--blue-secondary)" stopOpacity={0.8} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--muted)" opacity={0.15} vertical={false} />
-                      <XAxis 
-                        dataKey="name" 
-                        tick={{ fill: "var(--text)", fontSize: 12 }} 
-                        axisLine={{ stroke: "var(--muted)", strokeWidth: 1 }}
-                        tickLine={false}
-                      />
-                      <YAxis 
-                        tick={{ fill: "var(--text)", fontSize: 12 }} 
-                        axisLine={{ stroke: "var(--muted)", strokeWidth: 1 }}
-                        tickLine={false}
-                      />
-                      <Tooltip 
-                        cursor={{ fill: "var(--muted)", opacity: 0.1 }}
-                        contentStyle={{ 
-                          background: "var(--card)", 
-                          border: "1px solid var(--muted)",
-                          borderRadius: "8px",
-                          color: "var(--text)",
-                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
-                        }}
-                        labelStyle={{ color: "var(--text)", fontWeight: "600", marginBottom: "4px" }}
-                        itemStyle={{ color: "var(--text)", padding: "2px 0" }}
-                      />
-                      <Legend 
-                        wrapperStyle={{ color: "var(--text)", paddingTop: "10px" }} 
-                        iconType="circle"
-                      />
-                      <Bar 
-                        dataKey="spent" 
-                        fill="url(#spentGradient)" 
-                        radius={[8, 8, 0, 0]} 
-                        name="Total Spent (₹)"
-                        maxBarSize={60}
-                        animationBegin={0}
-                        animationDuration={800}
-                        isAnimationActive={true}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+     <div ref={areaChartRef}>
+       <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
+         <CardHeader className="p-4 sm:p-6">
+           <CardTitle className="text-sm text-[var(--text)]">Purchase Timeline</CardTitle>
+         </CardHeader>
+         <CardContent className="p-4 sm:p-6 text-[var(--text)]">
+           <div style={{ height: 220 }}>
+             <ResponsiveContainer width="100%" height="100%" key={areaKey}>
+               <AreaChart data={timelineData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                 <defs>
+                   <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                     <stop offset="0%" stopColor="var(--green-primary)" stopOpacity={0.6} />
+                     <stop offset="100%" stopColor="var(--green-primary)" stopOpacity={0.05} />
+                   </linearGradient>
+                 </defs>
+                 <XAxis dataKey="month" tick={{ fill: "var(--text)" }} />
+                 <YAxis tick={{ fill: "var(--text)" }} />
+                 <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--muted)" }} />
+                 <Area 
+                   type="monotone" 
+                   dataKey="total" 
+                   stroke="var(--green-primary)" 
+                   fill="url(#colorTotal)"
+                   animationBegin={0}
+                   animationDuration={1000}
+                   isAnimationActive={true}
+                 />
+               </AreaChart>
+             </ResponsiveContainer>
+           </div>
+         </CardContent>
+       </Card>
+     </div>
+   </div>
 
-          <div ref={areaChartRef}>
-            <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-sm text-[var(--text)]">Purchase Timeline</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 text-[var(--text)]">
-                <div style={{ height: 220 }}>
-                  <ResponsiveContainer width="100%" height="100%" key={areaKey}>
-                    <AreaChart data={timelineData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--green-primary)" stopOpacity={0.6} />
-                          <stop offset="100%" stopColor="var(--green-primary)" stopOpacity={0.05} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="month" tick={{ fill: "var(--text)" }} />
-                      <YAxis tick={{ fill: "var(--text)" }} />
-                      <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--muted)" }} />
-                      <Area 
-                        type="monotone" 
-                        dataKey="total" 
-                        stroke="var(--green-primary)" 
-                        fill="url(#colorTotal)"
-                        animationBegin={0}
-                        animationDuration={1000}
-                        isAnimationActive={true}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+   {/* Right column: Pie (tags) + recommendations + customers table snippet */}
+   <aside className="space-y-6">
+     <div ref={pieChartRef}>
+       <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
+         <CardHeader className="p-4 sm:p-6">
+           <CardTitle className="text-sm text-[var(--text)]">Tag Distribution</CardTitle>
+         </CardHeader>
+         <CardContent className="p-4 sm:p-6">
+           <div style={{ height: 220 }}>
+             <ResponsiveContainer width="100%" height="100%" key={pieKey}>
+               <PieChart>
+                 <Pie
+                   dataKey="value"
+                   data={tagDistribution}
+                   innerRadius={48}
+                   outerRadius={80}
+                   paddingAngle={4}
+                   label
+                   animationBegin={0}
+                   animationDuration={800}
+                   isAnimationActive={true}
+                 >
+                   {tagDistribution.map((entry, idx) => (
+                     <Cell key={`cell-${idx}`} fill={idx % 2 === 0 ? "var(--primary)" : "var(--secondary)"} />
+                   ))}
+                 </Pie>
+                 <Tooltip 
+                   contentStyle={{ 
+                     background: "var(--card)", 
+                     border: "1px solid var(--muted)",
+                     borderRadius: "8px",
+                     color: "var(--text)",
+                     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                     padding: "8px 12px"
+                   }}
+                   itemStyle={{ color: "var(--text)", fontWeight: "500" }}
+                 />
+                 <Legend verticalAlign="bottom" wrapperStyle={{ color: "var(--muted)" }} iconType="circle" />
+               </PieChart>
+             </ResponsiveContainer>
+           </div>
+         </CardContent>
+       </Card>
+     </div>
 
-        {/* Right column: Pie (tags) + recommendations + customers table snippet */}
-        <aside className="space-y-6">
-          <div ref={pieChartRef}>
-            <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-sm text-[var(--text)]">Tag Distribution</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6">
-                <div style={{ height: 220 }}>
-                  <ResponsiveContainer width="100%" height="100%" key={pieKey}>
-                    <PieChart>
-                      <Pie
-                        dataKey="value"
-                        data={tagDistribution}
-                        innerRadius={48}
-                        outerRadius={80}
-                        paddingAngle={4}
-                        label
-                        animationBegin={0}
-                        animationDuration={800}
-                        isAnimationActive={true}
-                      >
-                        {tagDistribution.map((entry, idx) => (
-                          <Cell key={`cell-${idx}`} fill={idx % 2 === 0 ? "var(--primary)" : "var(--secondary)"} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          background: "var(--card)", 
-                          border: "1px solid var(--muted)",
-                          borderRadius: "8px",
-                          color: "var(--text)",
-                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                          padding: "8px 12px"
-                        }}
-                        itemStyle={{ color: "var(--text)", fontWeight: "500" }}
-                      />
-                      <Legend verticalAlign="bottom" wrapperStyle={{ color: "var(--muted)" }} iconType="circle" />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+     <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)]">
+       <CardHeader className="p-4 sm:p-6 ">
+         <CardTitle className="text-sm text-[var(--text)]">Top Recommendations</CardTitle>
+       </CardHeader>
+       <CardContent className="p-4 sm:p-6 space-y-3 text-[var(--text)]">
+         {Array.from(
+           new Set(customers.flatMap((c) => c.recommendations || ["No recommendations."]))
+         ).map((rec, idx) => (
+           <motion.div
+             key={idx}
+             whileHover={{ scale: 1.02 }}
+             className="rounded-lg p-3 bg-[var(--background)]/30 border border-[var(--muted)]"
+           >
+             <div className="text-sm">{rec}</div>
+           </motion.div>
+         ))}
+       </CardContent>
+     </Card>
 
-          <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)]">
-            <CardHeader className="p-4 sm:p-6 ">
-              <CardTitle className="text-sm text-[var(--text)]">Top Recommendations</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-3 text-[var(--text)]">
-              {Array.from(
-                new Set(customers.flatMap((c) => c.recommendations || ["No recommendations."]))
-              ).map((rec, idx) => (
-                <motion.div
-                  key={idx}
-                  whileHover={{ scale: 1.02 }}
-                  className="rounded-lg p-3 bg-[var(--background)]/30 border border-[var(--muted)]"
-                >
-                  <div className="text-sm">{rec}</div>
-                </motion.div>
-              ))}
-            </CardContent>
-          </Card>
+     <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
+       <CardHeader className="p-4 sm:p-6">
+         <CardTitle className="text-sm text-[var(--text)]">Recent Customers</CardTitle>
+       </CardHeader>
+       <CardContent className="p-4 sm:p-6 text-[var(--text)]">
+         <div className="flex flex-col gap-3">
+           {customers.slice(0, 4).map((c) => (
+             <motion.button
+               key={c._id}
+               onClick={() => setSelectedCustomer(c)}
+               whileHover={{ x: 4 }}
+               className="text-left w-full rounded-md p-3 bg-[var(--background)]/20 border border-[var(--muted)]"
+             >
+               <div className="flex items-center justify-between">
+                 <div>
+                   <div className="font-medium">{c.name}</div>
+                   <div className="text-xs text-[var(--text)]">{c.email}</div>
+                 </div>
+                 <div className="text-xs text-[var(--text)]">{c.stats?.total_spent ? `₹${c.stats.total_spent}` : "—"}</div>
+               </div>
+             </motion.button>
+           ))}
+           <Button variant="ghost" onClick={() => setSelectedCustomer(null)}>View All</Button>
+         </div>
+       </CardContent>
+     </Card>
+   </aside>
+ </div>
 
-          <Card className="rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-sm text-[var(--text)]">Recent Customers</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 text-[var(--text)]">
-              <div className="flex flex-col gap-3">
-                {customers.slice(0, 4).map((c) => (
-                  <motion.button
-                    key={c._id}
-                    onClick={() => setSelectedCustomer(c)}
-                    whileHover={{ x: 4 }}
-                    className="text-left w-full rounded-md p-3 bg-[var(--background)]/20 border border-[var(--muted)]"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{c.name}</div>
-                        <div className="text-xs text-[var(--text)]">{c.email}</div>
-                      </div>
-                      <div className="text-xs text-[var(--text)]">{c.stats?.total_spent ? `₹${c.stats.total_spent}` : "—"}</div>
-                    </div>
-                  </motion.button>
-                ))}
-                <Button variant="ghost" onClick={() => setSelectedCustomer(null)}>View All</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </aside>
-      </div>
+ {/* Customers Table */}
+ <div className="mt-6 rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
+   <div className="p-4 sm:p-6 border-b border-[var(--muted)]">
+     <div className="flex items-center justify-between">
+       <h3 className="text-sm text-[var(--text)]">All Customers</h3>
+       <div className="text-xs text-[var(--text)]">Showing {filteredCustomers.length} results</div>
+     </div>
+   </div>
+   <div className="overflow-x-auto">
+     <table className="min-w-full text-sm sm:text-base">
+       <thead className="bg-[var(--muted)]/20">
+         <tr>
+           <th className="px-4 py-3 text-left">Name</th>
+           <th className="px-4 py-3 text-left">Email</th>
+           <th className="px-4 py-3 text-left">City</th>
+           <th className="px-4 py-3 text-left">Orders</th>
+           <th className="px-4 py-3 text-left">Spent</th>
+           <th className="px-4 py-3 text-left">Churn %</th>
+           <th className="px-4 py-3 text-left">Actions</th>
+         </tr>
+       </thead>
+       <tbody>
+         {filteredCustomers.map((c) => (
+           <tr key={c._id} className="border-t border-[var(--muted)] hover:bg-[var(--muted)]/10 transition-colors">
+             <td className="px-4 py-3">{c.name}</td>
+             <td className="px-4 py-3">{c.email}</td>
+             <td className="px-4 py-3">{c.address?.city || "—"}</td>
+             <td className="px-4 py-3">{c.stats?.order_count ?? 0}</td>
+             <td className="px-4 py-3">₹{(c.stats?.total_spent || 0).toLocaleString()}</td>
+             <td className="px-4 py-3">{Math.round((c.churn_probability || 0) * 100)}%</td>
+             <td className="px-4 py-3">
+               <div className="flex gap-2">
+                 <Dialog>
+                   <DialogTrigger asChild>
+                     <Button size="sm" variant="outline" className="border-[var(--muted)] text-[var(--text)]">View</Button>
+                   </DialogTrigger>
+                   <DialogContent className="sm:max-w-lg">
+                     <DialogHeader>
+                       <DialogTitle>{c.name}</DialogTitle>
+                     </DialogHeader>
+                     <div className="space-y-2">
+                       <div><strong>Email:</strong> {c.email}</div>
+                       <div><strong>Phone:</strong> {c.phone}</div>
+                       <div><strong>City:</strong> {c.address?.city}</div>
+                       <div><strong>Occupation:</strong> {c.demographics?.occupation}</div>
+                       <div><strong>Orders:</strong> {c.stats?.order_count}</div>
+                       <div><strong>Total Spent:</strong> ₹{c.stats?.total_spent}</div>
+                       <div><strong>Churn Prob:</strong> {Math.round((c.churn_probability || 0) * 100)}%</div>
+                       <div><strong>Recommendations:</strong>
+                         <ul className="list-disc pl-5">
+                           {(c.recommendations || []).map((r, i) => <li key={i}>{r}</li>)}
+                         </ul>
+                       </div>
+                     </div>
+                     <DialogClose className="mt-4 bg-[var(--primary)] text-white px-4 py-2 rounded">Close</DialogClose>
+                   </DialogContent>
+                 </Dialog>
+               </div>
+             </td>
+           </tr>
+         ))}
+       </tbody>
+     </table>
+   </div>
+ </div>
 
-      {/* Customers Table */}
-      <div className="mt-6 rounded-2xl bg-[var(--card)] border border-[var(--muted)] overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-[var(--muted)]">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm text-[var(--text)]">All Customers</h3>
-            <div className="text-xs text-[var(--text)]">Showing {filteredCustomers.length} results</div>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm sm:text-base">
-            <thead className="bg-[var(--muted)]/20">
-              <tr>
-                <th className="px-4 py-3 text-left">Name</th>
-                <th className="px-4 py-3 text-left">Email</th>
-                <th className="px-4 py-3 text-left">City</th>
-                <th className="px-4 py-3 text-left">Orders</th>
-                <th className="px-4 py-3 text-left">Spent</th>
-                <th className="px-4 py-3 text-left">Churn %</th>
-                <th className="px-4 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCustomers.map((c) => (
-                <tr key={c._id} className="border-t border-[var(--muted)] hover:bg-[var(--muted)]/10 transition-colors">
-                  <td className="px-4 py-3">{c.name}</td>
-                  <td className="px-4 py-3">{c.email}</td>
-                  <td className="px-4 py-3">{c.address?.city || "—"}</td>
-                  <td className="px-4 py-3">{c.stats?.order_count ?? 0}</td>
-                  <td className="px-4 py-3">₹{(c.stats?.total_spent || 0).toLocaleString()}</td>
-                  <td className="px-4 py-3">{Math.round((c.churn_probability || 0) * 100)}%</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="border-[var(--muted)] text-[var(--text)]">View</Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-lg">
-                          <DialogHeader>
-                            <DialogTitle>{c.name}</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-2">
-                            <div><strong>Email:</strong> {c.email}</div>
-                            <div><strong>Phone:</strong> {c.phone}</div>
-                            <div><strong>City:</strong> {c.address?.city}</div>
-                            <div><strong>Occupation:</strong> {c.demographics?.occupation}</div>
-                            <div><strong>Orders:</strong> {c.stats?.order_count}</div>
-                            <div><strong>Total Spent:</strong> ₹{c.stats?.total_spent}</div>
-                            <div><strong>Churn Prob:</strong> {Math.round((c.churn_probability || 0) * 100)}%</div>
-                            <div><strong>Recommendations:</strong>
-                              <ul className="list-disc pl-5">
-                                {(c.recommendations || []).map((r, i) => <li key={i}>{r}</li>)}
-                              </ul>
-                            </div>
-                          </div>
-                          <DialogClose className="mt-4 bg-[var(--primary)] text-white px-4 py-2 rounded">Close</DialogClose>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Selected customer quick drawer */}
-      <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{selectedCustomer?.name || "Customer"}</DialogTitle>
-          </DialogHeader>
-          {selectedCustomer ? (
-            <div className="space-y-3">
-              <div><strong>Email:</strong> {selectedCustomer.email}</div>
-              <div><strong>Phone:</strong> {selectedCustomer.phone}</div>
-              <div><strong>City:</strong> {selectedCustomer.address?.city}</div>
-              <div><strong>Tags:</strong> {(selectedCustomer.tags || []).join(", ")}</div>
-              <div><strong>Churn Prob:</strong> {Math.round((selectedCustomer.churn_probability || 0) * 100)}%</div>
-              <div><strong>Recommendations:</strong>
-                <ul className="list-disc pl-5">
-                  {(selectedCustomer.recommendations || []).map((r, i) => <li key={i}>{r}</li>)}
-                </ul>
-              </div>
-            </div>
-          ) : (
-            <div>No customer selected</div>
-          )}
-          <DialogClose className="mt-4 bg-[var(--primary)] text-white px-4 py-2 rounded">Close</DialogClose>
-        </DialogContent>
-      </Dialog>
+ {/* Selected customer quick drawer */}
+ <Dialog open={!!selectedCustomer} onOpenChange={(open) => !open && setSelectedCustomer(null)}>
+   <DialogContent className="sm:max-w-md">
+     <DialogHeader>
+       <DialogTitle>{selectedCustomer?.name || "Customer"}</DialogTitle>
+     </DialogHeader>
+     {selectedCustomer ? (
+       <div className="space-y-3">
+         <div><strong>Email:</strong> {selectedCustomer.email}</div>
+         <div><strong>Phone:</strong> {selectedCustomer.phone}</div>
+         <div><strong>City:</strong> {selectedCustomer.address?.city}</div>
+         <div><strong>Tags:</strong> {(selectedCustomer.tags || []).join(", ")}</div>
+         <div><strong>Churn Prob:</strong> {Math.round((selectedCustomer.churn_probability || 0) * 100)}%</div>
+         <div><strong>Recommendations:</strong>
+           <ul className="list-disc pl-5">
+             {(selectedCustomer.recommendations || []).map((r, i) => <li key={i}>{r}</li>)}
+           </ul>
+         </div>
+       </div>
+     ) : (
+       <div>No customer selected</div>
+     )}
+     <DialogClose className="mt-4 bg-[var(--primary)] text-white px-4 py-2 rounded">Close</DialogClose>
+   </DialogContent>
+ </Dialog> 
     </main>
   );
 }
-
-
-
-
-
-

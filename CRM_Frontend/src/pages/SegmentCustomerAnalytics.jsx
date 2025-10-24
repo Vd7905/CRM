@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 export default function SegmentCustomerAnalytics() {
   const { segmentId } = useParams(); // URL param
@@ -50,36 +51,83 @@ export default function SegmentCustomerAnalytics() {
   
 
   // Fetch customers from backend using segmentId
-   useEffect(() => {
-    if (!segmentId) return;
+//    useEffect(() => {
+//     if (!segmentId) return;
 
-    const fetchCustomers = async () => {
-  setLoading(true);
-  try {
-    const response = await api.post("/api/enrich/analyse", {
-      segmentId: segmentId,
-    });
+//     const fetchCustomers = async () => {
+//   setLoading(true);
+//   try {
+//     const response = await api.post("/api/enrich/analyse", {
+//       segmentId: segmentId,
+//     },
+//     {Authorization: `Bearer ${localStorage.getItem("token")}`}
+//   );
 
-    if (Array.isArray(response.data)) {
-      setCustomers(response.data);
-    } else if (response.data?.data && Array.isArray(response.data.data)) {
-      setCustomers(response.data.data);
-    } else {
-      console.warn("Unexpected response format:", response.data);
-      setCustomers([]);
-    }
+//     if (Array.isArray(response.data)) {
+//       setCustomers(response.data);
+//     } else if (response.data?.data && Array.isArray(response.data.data)) {
+//       setCustomers(response.data.data);
+//     } else {
+//       console.warn("Unexpected response format:", response.data);
+//       setCustomers([]);
+//     }
 
-    //console.log("Fetched Customers:", response.data);
-  } catch (err) {
-    console.error("Error fetching customers:", err);
-    setCustomers([]);
-  } finally {
+//     //console.log("Fetched Customers:", response.data);
+//   } catch (err) {
+//     console.error("Error fetching customers:", err);
+//     setCustomers([]);
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+//     fetchCustomers();
+//   }, [segmentId]);
+
+const fetchedOnce = useRef(false);
+
+useEffect(() => {
+  if (!segmentId) return;
+
+  if(fetchedOnce.current) return;
+    fetchedOnce.current = true;
+
+  const fetchCustomers = async () => {
+    setLoading(true);
+
+    const token = localStorage.getItem("token");
+
+    await toast.promise(
+      api.post(
+        "/api/enrich/analyse",
+        { segmentId: segmentId },
+        { headers: { Authorization: `Bearer ${token}` } } // <-- correct headers
+      ),
+      {
+        loading: "Fetching customers for this segment...",
+        success: (res) => {
+          if (Array.isArray(res.data)) {
+            setCustomers(res.data);
+            console.log(res.data);
+            return `Fetched ${res.data.length} customers Of Your Segment successfully!`;
+          } else if (res.data?.data && Array.isArray(res.data.data)) {
+            setCustomers(res.data.data);
+            return `Fetched ${res.data.data.length} customers successfully!`;
+          } else {
+            setCustomers([]);
+            return "No customers found for this segment";
+          }
+        },
+        error: "Failed to fetch customers for this segment",
+      }
+    );
+
     setLoading(false);
-  }
-};
+  };
 
-    fetchCustomers();
-  }, [segmentId]);
+  fetchCustomers();
+}, [segmentId]);
+
 
   // Derived metrics
   const stats = useMemo(() => {

@@ -1,14 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import api from "@/utils/axios";
 import { NavLink } from "react-router-dom";
+import { toast } from "sonner";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -28,17 +23,21 @@ export default function Dashboard() {
   const [logs, setLogs] = useState({});
   const [loading, setLoading] = useState(false);
 
+  
+
   // Fetch all campaigns
   useEffect(() => {
     const fetchCampaigns = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
         const res = await api.get("/api/user/get-campaign");
         if (res.data.success && res.data.data) {
           setCampaigns(res.data.data);
+        } else{
+          ""
         }
       } catch (error) {
-        console.error("Error fetching campaigns:", error);
+        console.error(error);
       } finally {
         setLoading(false);
       }
@@ -50,35 +49,37 @@ export default function Dashboard() {
   const fetchSegmentDetails = async (segmentId) => {
     if (segmentDetails[segmentId]) return;
     try {
-       const res = await api.get(`/api/user/get-segment`, {
-        params: { id: segmentId},
-      });
-      console.log(res);
+      const res = await api.get(`/api/user/get-segment`, { params: { id: segmentId } });
       if (res.data.data) {
         setSegmentDetails(prev => ({ ...prev, [segmentId]: res.data.data }));
       }
     } catch (error) {
-      console.error("Error fetching segment details:", error);
+      console.error(error);
+      toast.error("Failed to fetch segment details");
     }
   };
 
   // Fetch communication logs
-const fetchLogs = async (campaignId) => {
-  if (logs[campaignId]) return; // avoid duplicate fetch
-  try {
-    const res = await api.get(`/api/user/get-log?campaignId=${campaignId}`);
-    if (res.data?.data) {
-      setLogs(prev => ({ ...prev, [campaignId]: res.data.data }));
+  const fetchLogs = async (campaignId) => {
+    if (logs[campaignId]) return;
+    try {
+      const res = await api.get(`/api/user/get-log?campaignId=${campaignId}`);
+      if (res.data?.data) {
+        setLogs(prev => ({ ...prev, [campaignId]: res.data.data }));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to fetch communication logs");
     }
-  } catch (error) {
-    console.error("Error fetching logs:", error);
-  }
-};
+  };
 
   if (loading) {
     return (
-      <main className="flex-1 bg-[var(--background)] text-[var(--text)] p-6 flex justify-center items-center">
-        <p>Loading campaigns...</p>
+      <main className="flex-1 bg-[var(--background)] flex justify-center items-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 border-4 border-[var(--muted)] border-t-[var(--primary)] rounded-full animate-spin"></div>
+          <p className="text-[var(--text)] text-lg">Loading campaigns...</p>
+        </div>
       </main>
     );
   }
@@ -193,22 +194,20 @@ const fetchLogs = async (campaignId) => {
                         </p>
                       )}
                       <div className="mt-6 flex justify-between">
-  <DialogClose className="bg-[var(--muted)] text-[var(--text)] px-4 py-2 rounded">
-    Close
-  </DialogClose>
+                        <DialogClose className="bg-[var(--muted)] text-[var(--text)] px-4 py-2 rounded">
+                          Close
+                        </DialogClose>
 
-  <Button asChild className="bg-[var(--primary)] text-white px-4 py-2 rounded">
-    <NavLink
-      to={`/segment-customers/${c.segment_id?._id}`}
-      state={{ segmentId: c.segment_id?._id }}
-    >
-      Analyse Customers
-    </NavLink>
-  </Button>
-</div>
-
+                        <Button asChild className="bg-[var(--primary)] text-white px-4 py-2 rounded">
+                          <NavLink
+                            to={`/segment-customers/${c.segment_id?._id}`}
+                            state={{ segmentId: c.segment_id?._id }}
+                          >
+                            Analyse Customers
+                          </NavLink>
+                        </Button>
+                      </div>
                     </DialogContent>
-                   
                   </Dialog>
 
                   {/* Communication Logs Dialog */}
@@ -247,9 +246,7 @@ const fetchLogs = async (campaignId) => {
                           <tbody>
                             {(logs[c._id] || [])
                               .filter((log) =>
-                                log.customer?.name
-                                  ?.toLowerCase()
-                                  .includes(search.toLowerCase())
+                                log.customer?.name?.toLowerCase().includes(search.toLowerCase())
                               )
                               .filter((log) =>
                                 statusFilter === "all" || !statusFilter
@@ -261,20 +258,13 @@ const fetchLogs = async (campaignId) => {
                                   key={idx}
                                   className="border-t border-[var(--muted)] hover:bg-[var(--muted)]/20 transition-colors"
                                 >
-                                  <td className="px-4 py-2 sm:px-6 sm:py-4">
-                                    {log.customer?.name || "-"}
-                                  </td>
-                                  <td className="px-4 py-2 sm:px-6 sm:py-4">
-                                    {log.customer?.email || "-"}
-                                  </td>
+                                  <td className="px-4 py-2 sm:px-6 sm:py-4">{log.customer?.name || "-"}</td>
+                                  <td className="px-4 py-2 sm:px-6 sm:py-4">{log.customer?.email || "-"}</td>
                                   <td className="px-4 py-2 sm:px-6 sm:py-4">{log.status}</td>
-                                  <td className="px-4 py-2 sm:px-6 sm:py-4">
-                                    {new Date(log.sent_at).toLocaleString()}
-                                  </td>
+                                  <td className="px-4 py-2 sm:px-6 sm:py-4">{new Date(log.sent_at).toLocaleString()}</td>
                                 </tr>
                               ))}
                           </tbody>
-
                         </table>
                       </div>
 
