@@ -4,7 +4,7 @@ const generateTokens = (user) => {
   const accessToken = jwt.sign(
     { id: user._id, email: user.email },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "300m" }
+    { expiresIn: "15m" } // shorter for security, can adjust
   );
 
   const refreshToken = jwt.sign(
@@ -16,12 +16,29 @@ const generateTokens = (user) => {
   return { accessToken, refreshToken };
 };
 
+// Wrap verification to handle errors properly
 const verifyAccessToken = (token) => {
-  return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+  try {
+    return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+  } catch (err) {
+    if (err.name === "TokenExpiredError") {
+      throw new Error("Access token expired");
+    } else {
+      throw new Error("Invalid access token");
+    }
+  }
 };
 
 const verifyRefreshToken = (token) => {
-  return jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+  try {
+    return jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+  } catch (err) {
+    if (err.name === "TokenExpiredError") {
+      throw new Error("Refresh token expired");
+    } else {
+      throw new Error("Invalid refresh token");
+    }
+  }
 };
 
 export { generateTokens, verifyAccessToken, verifyRefreshToken };

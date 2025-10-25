@@ -1,7 +1,13 @@
 "use client";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +17,8 @@ import Interactive3DScene from "./3D/Interactive3DScene";
 import ThemeToggle from "./ThemeToggle/ThemeToggle";
 import api from "@/utils/axios";
 import { toast } from "sonner";
+import { useContext } from "react";
+import { AuthContext } from "@/context/AuthContext";
 
 export default function LoginForm() {
   const [name, setName] = useState("");
@@ -22,8 +30,16 @@ export default function LoginForm() {
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [isForgotLoading, setIsForgotLoading] = useState(false);
-
   const navigate = useNavigate();
+  const { setUser } = useContext(AuthContext);
+
+
+  // ✅ Save tokens & user properly
+  const storeUserData = (user, accessToken, refreshToken) => {
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+  };
 
   // ================= AUTH HANDLER =================
   const handleAuth = async () => {
@@ -35,24 +51,23 @@ export default function LoginForm() {
     const endpoint = isSignup ? "/api/auth/signup" : "/api/auth/login";
     const payload = isSignup ? { name, email, password } : { email, password };
 
-    await toast.promise(
-      api.post(endpoint, payload),
-      {
-        loading: isSignup ? "Signing up..." : "Logging in...",
-        success: (res) => {
-          const user = res.data.data?.user;
-          const token = res.data.data?.accessToken;
-          localStorage.setItem("user", user.name);
-          localStorage.setItem("email", user.email);
-          localStorage.setItem("token",token)
-          navigate("/");
-          return isSignup ? "Signup successful!" : "Login successful!";
-        },
-        error: (err) => err.response?.data?.message || "Authentication failed",
-      }
-    );
+    try {
+      const res = await api.post(endpoint, payload);
+      const { user, accessToken, refreshToken } = res.data?.data || {};
 
-    setIsLoading(false);
+      if (user && accessToken && refreshToken) {
+        storeUserData(user, accessToken, refreshToken);
+        setUser(user);
+        toast.success(isSignup ? "Signup successful!" : "Login successful!");
+        navigate("/", { replace: true });
+      } else {
+        toast.error("Invalid response from server");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Authentication failed.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // ================= GOOGLE LOGIN =================
@@ -62,27 +77,26 @@ export default function LoginForm() {
     }
 
     setIsLoading(true);
-    await toast.promise(
-      api.post(
-        "/api/auth/google-login",
-        { token: credentialResponse.credential }
-      ),
-      {
-        loading: "Logging in with Google...",
-        success: (res) => {
-          const user = res.data.data?.user;
-          const token = res.data.data?.accessToken;
-          console.log(user)
-          localStorage.setItem("user", user.name);
-          localStorage.setItem("email", user.email);
-          localStorage.setItem("token", token)
-          navigate("/");
-          return "Google login successful!";
-        },
-        error: (err) => err.response?.data?.message || "Google login failed",
+    try {
+      const res = await api.post("/api/auth/google-login", {
+        token: credentialResponse.credential,
+      });
+
+      const { user, accessToken, refreshToken } = res.data?.data || {};
+
+      if (user && accessToken && refreshToken) {
+        storeUserData(user, accessToken, refreshToken);
+        setUser(user);
+        toast.success("Google login successful!");
+        navigate("/", { replace: true });
+      } else {
+        toast.error("Invalid response from server");
       }
-    );
-    setIsLoading(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Google login failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // ================= FORGOT PASSWORD =================
@@ -90,19 +104,18 @@ export default function LoginForm() {
     if (!forgotEmail) return toast.error("Please enter your email");
 
     setIsForgotLoading(true);
-    await toast.promise(
-      api.post("/api/auth/forgot-password", { email: forgotEmail }),
-      {
-        loading: "Sending reset link...",
-        success: (res) => {
-          setShowForgotModal(false);
-          setForgotEmail("");
-          return res.data.message || "Reset link sent!";
-        },
-        error: (err) => err.response?.data?.message || "Failed to send reset link",
-      }
-    );
-    setIsForgotLoading(false);
+    try {
+      const res = await api.post("/api/auth/forgot-password", {
+        email: forgotEmail,
+      });
+      toast.success(res.data.message || "Reset link sent!");
+      setShowForgotModal(false);
+      setForgotEmail("");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to send reset link");
+    } finally {
+      setIsForgotLoading(false);
+    }
   };
 
   return (
@@ -111,7 +124,7 @@ export default function LoginForm() {
         <ThemeToggle />
 
         <div className="grid lg:grid-cols-2 min-h-screen">
-          {/* 3D Scene + Heading */}
+          {/* ===== 3D Scene + Heading ===== */}
           <div className="grid lg:grid-cols-2 relative">
             <div className="absolute inset-0 lg:static z-0 opacity-40 lg:opacity-100 pointer-events-none">
               <Interactive3DScene />
@@ -126,7 +139,7 @@ export default function LoginForm() {
             </div>
           </div>
 
-          {/* Login/Signup Form */}
+          {/* ===== Login / Signup Form ===== */}
           <div className="flex items-center justify-center p-6 lg:p-8 bg-[var(--background)]/50 backdrop-blur-xl overflow-y-auto">
             <div className="w-full max-w-sm">
               <Card className="backdrop-blur-xl border shadow-2xl bg-[var(--card)]">
@@ -138,30 +151,30 @@ export default function LoginForm() {
                     {isSignup ? "Sign up to get started" : "Sign in to your account"}
                   </CardDescription>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     {isSignup && (
                       <div className="space-y-2">
-                        <Label htmlFor="name" className="text-sm font-medium text-[var(--foreground)]">Name</Label>
+                        <Label htmlFor="name">Name</Label>
                         <div className="relative">
-                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
                           <Input
                             id="name"
                             type="text"
                             placeholder="Enter your name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="pl-10 h-10 text-[var(--foreground)]"
-                            required
+                            className="pl-10 h-10"
                           />
                         </div>
                       </div>
                     )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium text-[var(--foreground)]">Email</Label>
+                    <div className="space-y-2 text-[var(--foreground)]">
+                      <Label htmlFor="email">Email</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
                         <Input
                           id="email"
                           type="email"
@@ -169,15 +182,14 @@ export default function LoginForm() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="pl-10 h-10 text-[var(--foreground)]"
-                          required
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-sm font-medium text-[var(--foreground)]">Password</Label>
+                    <div className="space-y-2 text-[var(--foreground)]">
+                      <Label htmlFor="password">Password</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
                         <Input
                           id="password"
                           type={showPassword ? "text" : "password"}
@@ -185,14 +197,13 @@ export default function LoginForm() {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           className="pl-10 pr-10 h-10 text-[var(--foreground)]"
-                          required
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--foreground)]/60 hover:text-[var(--foreground)] transition-colors"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/60"
                         >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
 
@@ -211,30 +222,28 @@ export default function LoginForm() {
 
                     <Button
                       onClick={handleAuth}
-                      className="w-full h-10 bg-[var(--primary)] hover:bg-[var(--secondary)] text-[var(--card)] font-medium transition-all duration-300 transform hover:scale-[1.02]"
+                      className="w-full h-10 bg-[var(--primary)] hover:bg-[var(--secondary)] text-[var(--card)] font-medium transition-all"
                       disabled={isLoading}
                     >
                       {isLoading ? "Processing..." : isSignup ? "Sign Up" : "Sign In"}
                     </Button>
 
-                    <div>
-                      <GoogleLogin
-                        onSuccess={handleGoogleLogin}
-                        onError={() => toast.error("Google login failed")}
-                        theme=""
-                        size="large"
-                        shape="rectangular"
-                        text="continue_with"
-                        width="100%"
-                      />
-                    </div>
+                    <GoogleLogin
+                      onSuccess={handleGoogleLogin}
+                      onError={() => toast.error("Google login failed")}
+                      size="large"
+                      text="continue_with"
+                      width="100%"
+                    />
 
                     <div className="text-center">
                       <button
                         onClick={() => setIsSignup(!isSignup)}
-                        className="text-[var(--primary)] hover:text-[var(--secondary)] font-semibold transition-colors text-sm mt-2"
+                        className="text-[var(--primary)] hover:text-[var(--secondary)] font-semibold text-sm mt-2"
                       >
-                        {isSignup ? "Already have an account? Sign In" : "New user? Sign Up here"}
+                        {isSignup
+                          ? "Already have an account? Sign In"
+                          : "New user? Sign Up here"}
                       </button>
                     </div>
                   </div>
@@ -244,13 +253,13 @@ export default function LoginForm() {
           </div>
         </div>
 
-        {/* ======= Forgot Password Modal ======= */}
+        {/* ===== Forgot Password Modal ===== */}
         {showForgotModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[var(--card)] p-6 rounded-2xl shadow-2xl w-80 relative backdrop-blur-lg border border-[var(--border)]">
+            <div className="bg-[var(--card)] p-6 rounded-2xl shadow-2xl w-80 relative backdrop-blur-lg border">
               <button
                 onClick={() => setShowForgotModal(false)}
-                className="absolute top-3 right-3 text-[var(--foreground)]/70 hover:text-[var(--foreground)]"
+                className="absolute top-3 right-3 text-[var(--foreground)]/70"
               >
                 <X size={18} />
               </button>
@@ -265,12 +274,12 @@ export default function LoginForm() {
                 placeholder="Enter your email"
                 value={forgotEmail}
                 onChange={(e) => setForgotEmail(e.target.value)}
-                className="mb-4 text-[var(--foreground)]"
+                className="mb-4"
               />
               <Button
                 onClick={handleForgotPassword}
                 disabled={isForgotLoading}
-                className="w-full h-10 bg-[var(--primary)] hover:bg-[var(--secondary)] text-[var(--card)] font-medium"
+                className="w-full h-10 bg-[var(--primary)] hover:bg-[var(--secondary)] text-[var(--card)]"
               >
                 {isForgotLoading ? "Sending..." : "Send Reset Link"}
               </Button>

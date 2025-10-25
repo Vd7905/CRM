@@ -241,7 +241,6 @@
 //   resetPassword
 // };
 
-
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -250,6 +249,7 @@ import { generateTokens } from "../utils/jwt.js";
 import { User } from "../models/user.model.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 
 // ================== GOOGLE LOGIN ==================
 const googleLogin = asyncHandler(async (req, res) => {
@@ -275,23 +275,15 @@ const googleLogin = asyncHandler(async (req, res) => {
 
   const { accessToken, refreshToken } = generateTokens(user);
 
-  // send tokens in response instead of cookies
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { user, accessToken, refreshToken },
-        "Google login successful"
-      )
-    );
+    .json(new ApiResponse(200, { user, accessToken, refreshToken }, "Google login successful"));
 });
 
 // ================== EMAIL SIGNUP ==================
 const emailSignup = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
-  if (!name || !email || !password)
-    throw new ApiError(400, "Name, email and password are required");
+  if (!name || !email || !password) throw new ApiError(400, "Name, email and password are required");
 
   let user = await User.findOne({ email });
   if (user) throw new ApiError(400, "User already exists with this email");
@@ -301,20 +293,13 @@ const emailSignup = asyncHandler(async (req, res) => {
 
   return res
     .status(201)
-    .json(
-      new ApiResponse(
-        201,
-        { user, accessToken, refreshToken },
-        "Signup successful"
-      )
-    );
+    .json(new ApiResponse(201, { user, accessToken, refreshToken }, "Signup successful"));
 });
 
 // ================== EMAIL LOGIN ==================
 const emailLogin = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password)
-    throw new ApiError(400, "Email and password are required");
+  if (!email || !password) throw new ApiError(400, "Email and password are required");
 
   const user = await User.findOne({ email });
   if (!user) throw new ApiError(401, "Invalid email or password");
@@ -326,21 +311,13 @@ const emailLogin = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { user, accessToken, refreshToken },
-        "Login successful"
-      )
-    );
+    .json(new ApiResponse(200, { user, accessToken, refreshToken }, "Login successful"));
 });
 
 // ================== LOGOUT ==================
-const logout = asyncHandler(async (req, res) => {
-  // Since tokens are in localStorage, client must clear them manually
-  return res
-    .status(200)
-    .json(new ApiResponse(200, null, "Logged out successfully"));
+const logout = asyncHandler(async (_req, res) => {
+  // Tokens are stored client-side, so just return success
+  return res.status(200).json(new ApiResponse(200, null, "Logged out successfully"));
 });
 
 // ================== FORGOT PASSWORD ==================
@@ -355,17 +332,13 @@ const forgotPassword = asyncHandler(async (req, res) => {
   const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
   user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+  user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
   await user.save();
 
   const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
   const message = `You requested a password reset. Click here: ${resetUrl}`;
 
-  await sendEmail({
-    to: user.email,
-    subject: "Password Reset Request",
-    text: message,
-  });
+  await sendEmail({ to: user.email, subject: "Password Reset Request", text: message });
 
   return res.status(200).json(new ApiResponse(200, null, "Reset password link sent to email"));
 });
@@ -374,7 +347,6 @@ const forgotPassword = asyncHandler(async (req, res) => {
 const resetPassword = asyncHandler(async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
-
   if (!password) throw new ApiError(400, "New password is required");
 
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
@@ -400,19 +372,14 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   if (!refreshToken) throw new ApiError(401, "Refresh token is required");
 
   try {
-    const decoded = verifyRefreshToken(refreshToken);
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) throw new ApiError(401, "Invalid refresh token");
+    if (!user) throw new ApiError(401, "User not found");
 
-    const { accessToken } = generateTokens(user);
-
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(200, { accessToken }, "Access token refreshed")
-      );
-  } catch (error) {
-    throw new ApiError(401, error?.message || "Invalid refresh token");
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
+    return res.status(200).json(new ApiResponse(200, { user, accessToken, refreshToken: newRefreshToken }, "Token refreshed successfully"));
+  } catch (err) {
+    throw new ApiError(401, "Invalid or expired refresh token");
   }
 });
 
@@ -421,7 +388,8 @@ export {
   emailSignup,
   emailLogin,
   logout,
-  refreshAccessToken,
   forgotPassword,
   resetPassword,
+  refreshAccessToken,
 };
+
