@@ -221,18 +221,21 @@ export const getAllCustomers = async (req, res) => {
 };
 
 export const insertCustomers = asyncHandler(async (req, res) => {
-  // Check if file is provided
   if (!req.file) {
     throw new ApiError(400, "CSV file is required");
   }
 
+  const userId = req.user?._id;
+  if (!userId) {
+    throw new ApiError(401, "Unauthorized: User not found");
+  }
+
   const customers = [];
 
-  // Read and parse CSV
+  // Read CSV
   fs.createReadStream(req.file.path)
     .pipe(csv())
     .on("data", (row) => {
-      // Convert CSV row into Customer object format
       customers.push({
         name: row.name,
         email: row.email,
@@ -245,33 +248,54 @@ export const insertCustomers = asyncHandler(async (req, res) => {
         stats: {
           total_spent: Number(row.total_spent) || 0,
           order_count: Number(row.order_count) || 0,
-          last_purchase: row.last_purchase
-            ? new Date(row.last_purchase)
-            : null,
+          last_purchase: row.last_purchase ? new Date(row.last_purchase) : null,
         },
         is_active: row.is_active === "true" || row.is_active === "1",
+        uploaded_by: userId,
       });
     })
     .on("end", async () => {
       try {
-        // Insert customers into DB
-        const result = await Customer.insertMany(customers, { ordered: false });
+        // Bulk insert: skips duplicates instead of crashing
+        const result = await Customer.insertMany(customers, {
+          ordered: false, // continue inserting even if duplicates found
+        });
 
-        // Remove temp file after processing
+        // Identify duplicates by comparing emails
+        const insertedEmails = result.map((c) => c.email);
+        const duplicates = customers.filter((c) => !insertedEmails.includes(c.email));
+
+        // Remove temp CSV file
         fs.unlinkSync(req.file.path);
 
-        res
-          .status(201)
-          .json(
-            new ApiResponse(
-              201,
-              { inserted: result.length },
-              "Customers inserted successfully"
-            )
-          );
+        res.status(201).json({
+          success: true,
+          message: "Customers processed",
+          data: {
+            inserted: result,
+            duplicates,
+          },
+        });
       } catch (err) {
-        console.error("Insert error:", err);
-        throw new ApiError(500, "Failed to insert customers");
+        if (err.code === 11000 && err.writeErrors) {
+          // Partial duplicates
+          const insertedEmails = err.insertedDocs?.map((c) => c.email) || [];
+          const duplicates = customers.filter((c) => !insertedEmails.includes(c.email));
+
+          fs.unlinkSync(req.file.path);
+
+          res.status(201).json({
+            success: true,
+            message: "Customers processed with some duplicates",
+            data: {
+              inserted: err.insertedDocs || [],
+              duplicates,
+            },
+          });
+        } else {
+          console.error("Insert error:", err);
+          throw new ApiError(500, "Failed to insert customers");
+        }
       }
     })
     .on("error", (err) => {

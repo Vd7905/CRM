@@ -25,7 +25,7 @@ export const enrichCustomers = async (req, res) => {
     );
     const customers = segmentResponse.data.data || [];
     if (customers.length === 0) {
-      return res.status(404).json({ message: "No customers in this segment" });
+      return res.status(200).json({ message: "No customers in this segment" });
     }
 
     const today = new Date();

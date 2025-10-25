@@ -35,6 +35,7 @@ const customerSchema = new mongoose.Schema({
   },
   segments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Segment" }],
   tags: [String],
+  uploaded_by: { type: mongoose.Schema.Types.ObjectId, ref: "User"},
   created_at: { type: Date, default: Date.now },
   updated_at: Date,
   is_active: { type: Boolean, default: true },

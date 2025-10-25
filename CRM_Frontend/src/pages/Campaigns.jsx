@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,15 +11,9 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogClose,
-} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import api from "@/utils/axios";
+import { Loader2 } from "lucide-react";
 
 export default function CreateCampaign() {
   const [campaignName, setCampaignName] = useState("");
@@ -32,20 +25,16 @@ export default function CreateCampaign() {
     { field: "total_spent", operator: "greater_than", value: "1000" },
   ]);
 
-  const [popupContent, setPopupContent] = useState("");
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [loadingEstimate, setLoadingEstimate] = useState(false);
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
 
-  const showPopup = (message) => {
-    setPopupContent(message);
-    setIsPopupOpen(true);
-  };
-
-  const addRule = () => setRules([...rules, { field: "", operator: "greater_than", value: "" }]);
+  const addRule = () =>
+    setRules([...rules, { field: "", operator: "greater_than", value: "" }]);
   const removeRule = (i) => setRules(rules.filter((_, idx) => idx !== i));
   const updateRule = (i, key, val) =>
     setRules(rules.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)));
 
-  // Mapping frontend operator to backend enum
   const mapOperator = (op) => {
     switch (op) {
       case "greater_than":
@@ -61,30 +50,30 @@ export default function CreateCampaign() {
     }
   };
 
-  // Convert all rules for backend
   const mapRulesForBackend = (rules) =>
     rules.map((r) => ({ ...r, operator: mapOperator(r.operator) }));
 
-  // Estimate segment size
   const handleEstimateAudience = async () => {
-    if (!rules.length) return showPopup("⚠️ Add at least one rule!");
-
+    if (!rules.length) return toast.error("Add at least one rule");
+    setLoadingEstimate(true);
     try {
       const res = await api.post("/api/user/estimate-segment", {
         rules: { condition, rules: mapRulesForBackend(rules) },
       });
-      if (res.data.success) showPopup(`📊 Estimated Audience: ${res.data.data.count} users`);
-      else showPopup("❌ Failed to estimate segment");
+      if (res.data.success)
+        toast.success(`Estimated audience: ${res.data.data.count} users`);
+      else toast.error("Failed to estimate segment");
     } catch (err) {
       console.error(err);
-      showPopup("❌ Failed to estimate segment");
+      toast.error("Failed to estimate segment");
+    } finally {
+      setLoadingEstimate(false);
     }
   };
 
-  // AI content generation
   const handleAIGenerate = async () => {
-    if (!rules.length) return showPopup("⚠️ Add at least one rule!");
-
+    if (!rules.length) return toast.error("Add at least one rule");
+    setLoadingAI(true);
     try {
       const res = await api.post("/api/ai/generate-campaign-content", {
         segmentRules: { condition, rules: mapRulesForBackend(rules) },
@@ -92,59 +81,55 @@ export default function CreateCampaign() {
 
       if (res.data.success) {
         const aiText = res.data.data;
-
-        // Extract Subject
         const subjectMatch = aiText.match(/^Subject:\s*(.+)$/m);
         const bodyMatch = aiText.match(/^Body:\s*([\s\S]+)$/m);
-
         const generatedSubject = subjectMatch ? subjectMatch[1].trim() : "";
         const generatedBody = bodyMatch ? bodyMatch[1].trim() : "";
 
         if (generatedSubject) setSubject(generatedSubject);
         if (generatedBody) setMessageBody(generatedBody);
 
-        showPopup("✅ AI content generated!");
+        toast.success("AI content generated successfully");
       } else {
-        showPopup("❌ AI content generation failed");
+        toast.error("AI content generation failed");
       }
     } catch (err) {
       console.error(err);
-      showPopup("❌ AI content generation failed");
+      toast.error("AI content generation failed");
+    } finally {
+      setLoadingAI(false);
     }
   };
 
-  // Create segment + campaign
   const handleSubmit = async () => {
-    if (!campaignName || !subject || !messageBody) {
-      return showPopup("⚠️ Campaign name, subject, and message body are required");
-    }
-    if (!rules.length) return showPopup("⚠️ Add at least one segment rule");
+    if (!campaignName || !subject || !messageBody)
+      return toast.error("Please fill campaign name, subject, and message body");
+    if (!rules.length) return toast.error("Add at least one segment rule");
 
+    setLoadingSubmit(true);
     try {
       const backendRules = mapRulesForBackend(rules);
-
-      // 1. Create Segment
       const segmentRes = await api.post("/api/user/create-segment", {
         name: segmentDesc || `Segment - ${campaignName}`,
         description: segmentDesc,
         rules: { condition, rules: backendRules },
       });
 
-      if (!segmentRes.data.success) return showPopup("❌ Failed to create segment");
+      if (!segmentRes.data.success) {
+        toast.error("Failed to create segment");
+        return;
+      }
 
       const segmentId = segmentRes.data.data._id;
-
-      // 2. Create Campaign
       const campaignRes = await api.post("/api/user/create-campaign", {
         name: campaignName,
         segmentId,
         template: { subject, body: messageBody },
       });
 
-      if (!campaignRes.data.success) return showPopup("❌ Failed to create campaign");
+      if (!campaignRes.data.success) return toast.error("Failed to create campaign");
 
-      showPopup("✅ Campaign created successfully!");
-      // Reset form
+      toast.success("Campaign created successfully");
       setCampaignName("");
       setSegmentDesc("");
       setSubject("");
@@ -153,7 +138,9 @@ export default function CreateCampaign() {
       setCondition("AND");
     } catch (err) {
       console.error(err);
-      showPopup("❌ Something went wrong. Check console.");
+      toast.error("Something went wrong. Check console for details");
+    } finally {
+      setLoadingSubmit(false);
     }
   };
 
@@ -171,7 +158,9 @@ export default function CreateCampaign() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-foreground">Campaign Name *</label>
+              <label className="text-sm font-medium text-foreground">
+                Campaign Name *
+              </label>
               <Input
                 placeholder="Summer Sale 2025"
                 value={campaignName}
@@ -180,7 +169,9 @@ export default function CreateCampaign() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground">Segment Description</label>
+              <label className="text-sm font-medium text-foreground">
+                Segment Description
+              </label>
               <Input
                 placeholder="High-value customers"
                 value={segmentDesc}
@@ -194,17 +185,28 @@ export default function CreateCampaign() {
         {/* Audience Segmentation */}
         <Card className="bg-card border border-border rounded-2xl shadow-sm">
           <CardHeader className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-            <CardTitle className="text-lg font-semibold text-foreground">Audience Segmentation</CardTitle>
+            <CardTitle className="text-lg font-semibold text-foreground">
+              Audience Segmentation
+            </CardTitle>
             <div className="flex flex-wrap gap-3">
-              <Button onClick={handleEstimateAudience} className="bg-primary text-white hover:bg-secondary transition">
-                Total Customers
+              <Button
+                onClick={handleEstimateAudience}
+                disabled={loadingEstimate}
+                className="bg-primary text-white hover:bg-secondary transition"
+              >
+                {loadingEstimate ? (
+                  <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                ) : null}
+                {loadingEstimate ? "Estimating..." : "Total Customers"}
               </Button>
             </div>
           </CardHeader>
 
           <CardContent className="space-y-5">
             <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-foreground">Combine rules using:</label>
+              <label className="text-sm font-medium text-foreground">
+                Combine rules using:
+              </label>
               <Select value={condition} onValueChange={setCondition}>
                 <SelectTrigger className="w-32 bg-background border-border text-foreground">
                   <SelectValue placeholder="Condition" />
@@ -218,19 +220,30 @@ export default function CreateCampaign() {
 
             <div className="space-y-3 mt-2">
               {rules.map((rule, idx) => (
-                <div key={idx} className="flex flex-col sm:flex-row items-center gap-3 p-3 border border-border rounded-xl bg-muted/20 backdrop-blur-sm">
-                  <Select value={rule.field} onValueChange={(v) => updateRule(idx, "field", v)}>
+                <div
+                  key={idx}
+                  className="flex flex-col sm:flex-row items-center gap-3 p-3 border border-border rounded-xl bg-muted/20 backdrop-blur-sm"
+                >
+                  <Select
+                    value={rule.field}
+                    onValueChange={(v) => updateRule(idx, "field", v)}
+                  >
                     <SelectTrigger className="sm:w-40 w-full bg-background border-border text-foreground">
                       <SelectValue placeholder="Field" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover text-popover-foreground border border-border">
                       <SelectItem value="total_spent">Total Spent</SelectItem>
                       <SelectItem value="order_count">Order Count</SelectItem>
-                      <SelectItem value="last_purchase">Days Since Last Purchase</SelectItem>
+                      <SelectItem value="last_purchase">
+                        Days Since Last Purchase
+                      </SelectItem>
                     </SelectContent>
                   </Select>
 
-                  <Select value={rule.operator} onValueChange={(v) => updateRule(idx, "operator", v)}>
+                  <Select
+                    value={rule.operator}
+                    onValueChange={(v) => updateRule(idx, "operator", v)}
+                  >
                     <SelectTrigger className="sm:w-40 w-full bg-background border-border text-foreground">
                       <SelectValue placeholder="Operator" />
                     </SelectTrigger>
@@ -251,16 +264,24 @@ export default function CreateCampaign() {
                   />
 
                   {rules.length > 1 && (
-                    <Button variant="outline" onClick={() => removeRule(idx)} className="text-destructive border-destructive hover:bg-destructive/10">
-                      ✕
+                    <Button
+                      variant="outline"
+                      onClick={() => removeRule(idx)}
+                      className="text-destructive border-destructive hover:bg-destructive/10"
+                    >
+                      Remove
                     </Button>
                   )}
                 </div>
               ))}
             </div>
 
-            <Button variant="outline" onClick={addRule} className="border-primary text-primary hover:bg-primary/10">
-              + Add Rule
+            <Button
+              variant="outline"
+              onClick={addRule}
+              className="border-primary text-primary hover:bg-primary/10"
+            >
+              Add Rule
             </Button>
           </CardContent>
         </Card>
@@ -268,9 +289,18 @@ export default function CreateCampaign() {
         {/* Message Template */}
         <Card className="bg-card border border-border rounded-2xl shadow-sm">
           <CardHeader className="flex flex-row justify-between items-center">
-            <CardTitle className="text-lg font-semibold text-foreground">Message Template</CardTitle>
-            <Button onClick={handleAIGenerate} className="bg-primary text-white hover:bg-secondary transition">
-              AI Generate
+            <CardTitle className="text-lg font-semibold text-foreground">
+              Message Template
+            </CardTitle>
+            <Button
+              onClick={handleAIGenerate}
+              disabled={loadingAI}
+              className="bg-primary text-white hover:bg-secondary transition"
+            >
+              {loadingAI ? (
+                <Loader2 className="animate-spin w-4 h-4 mr-2" />
+              ) : null}
+              {loadingAI ? "Generating..." : "AI Generate"}
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -284,10 +314,14 @@ export default function CreateCampaign() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground">Message Body *</label>
-              <p className="text-xs text-muted-foreground mb-2">Use variables like {"{name}"} or {"{total_spent}"}</p>
+              <label className="text-sm font-medium text-foreground">
+                Message Body *
+              </label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Use variables like {"{name}"} or {"{total_spent}"}
+              </p>
               <Textarea
-                placeholder={`Hi {name},\nYou’ve spent {total_spent} and earned a special reward!`}
+                placeholder={`Hi {name},\nYou have spent {total_spent} and earned a special reward!`}
                 value={messageBody}
                 onChange={(e) => setMessageBody(e.target.value)}
                 className="min-h-[150px] bg-background border-border text-foreground placeholder:text-muted-foreground"
@@ -296,31 +330,25 @@ export default function CreateCampaign() {
           </CardContent>
         </Card>
 
-        {/* Footer */}
         <div className="flex justify-end gap-3">
-          <Button variant="outline" className="border-border text-foreground hover:bg-muted">
+          <Button
+            variant="outline"
+            className="border-border text-foreground hover:bg-muted"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} className="bg-primary hover:bg-secondary text-white">
-            Create Campaign
+          <Button
+            onClick={handleSubmit}
+            disabled={loadingSubmit}
+            className="bg-primary hover:bg-secondary text-white"
+          >
+            {loadingSubmit ? (
+              <Loader2 className="animate-spin w-4 h-4 mr-2" />
+            ) : null}
+            {loadingSubmit ? "Creating..." : "Create Campaign"}
           </Button>
         </div>
       </div>
-
-      {/* ShadCN Dialog Popup */}
-      <Dialog open={isPopupOpen} onOpenChange={setIsPopupOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Notification</DialogTitle>
-            <DialogDescription>{popupContent}</DialogDescription>
-          </DialogHeader>
-          <DialogClose asChild>
-            <Button className="mt-4 w-full bg-primary text-white hover:bg-secondary">
-              Close
-            </Button>
-          </DialogClose>
-        </DialogContent>
-      </Dialog>
     </main>
   );
 }

@@ -103,6 +103,44 @@ const createSegment = asyncHandler(async (req, res) => {
 
 // Get segments for current user
 
+// const getUserSegments = asyncHandler(async (req, res) => {
+//   const { id } = req.query;
+
+//   if (!id) {
+//     throw new ApiError(400, "Segment ID is required");
+//   }
+
+//   const segment = await Segment.findById(id).lean();
+
+//   if (!segment) {
+//     throw new ApiError(404, "Segment not found");
+//   }
+
+//   // Transform the rules for better frontend display
+//   const transformedSegment = {
+//     ...segment,
+//     rules: {
+//       condition: segment.rules.condition,
+//       rules: segment.rules.rules.map((rule) => ({
+//         field: rule.field,
+//         operator: rule.operator,
+//         value: rule.value,
+//         value_type: rule.value_type,
+//       })),
+//     },
+//   };
+
+//   res
+//     .status(200)
+//     .json(
+//       new ApiResponse(
+//         200,
+//         transformedSegment,
+//         "Segment details fetched successfully"
+//       )
+//     );
+// });
+
 const getUserSegments = asyncHandler(async (req, res) => {
   const { id } = req.query;
 
@@ -110,10 +148,11 @@ const getUserSegments = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Segment ID is required");
   }
 
-  const segment = await Segment.findById(id).lean();
+  // Find the segment created by this user
+  const segment = await Segment.findOne({ _id: id, created_by: req.user.id }).lean();
 
   if (!segment) {
-    throw new ApiError(404, "Segment not found");
+    throw new ApiError(404, "Segment not found or you don't have access");
   }
 
   // Transform the rules for better frontend display
@@ -130,16 +169,15 @@ const getUserSegments = asyncHandler(async (req, res) => {
     },
   };
 
-  res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        transformedSegment,
-        "Segment details fetched successfully"
-      )
-    );
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      transformedSegment,
+      "Segment details fetched successfully"
+    )
+  );
 });
+
 
 // Estimate segment size
 const estimateSegment = asyncHandler(async (req, res) => {
@@ -178,6 +216,7 @@ const getSegmentCustomers = asyncHandler(async (req, res) => {
   // 2. Build query from rules
   const query = buildSegmentQuery(segment.rules);
 
+  query.uploaded_by = req.user.id;
   // 3. Fetch customers
   const customers = await Customer.find(query).lean();
 

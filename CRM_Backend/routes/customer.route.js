@@ -12,11 +12,12 @@ import {
   insertCustomers
 } from "../controllers/customer.controller.js";
 
+
 const router = Router();
 
 const upload = multer({ dest: "uploads/" });
 
-router.post("/insert-customers", upload.single("file"), insertCustomers);
+router.post("/insert-customers", upload.single("file"), authenticate, insertCustomers);
 router.route("/create").post(createCustomer);
 router.route("/").get(getCustomers);
 router.route("/get").get(getAllCustomers);

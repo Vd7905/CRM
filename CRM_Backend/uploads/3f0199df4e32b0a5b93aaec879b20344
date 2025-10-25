@@ -1,0 +1,3 @@
+name,email,phone,city,state,country,total_spent,order_count,last_purchase,is_active
+temp1,temp1@example.com,9876543210,Delhi,Delhi,India,2500,4,10-09-2025,TRUE
+temp2,temp2@example.com,8765432109,Mumbai,Maharashtra,India,4000,8,01-10-2025,FALSE
