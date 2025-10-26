@@ -4,15 +4,6 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 const app = express();
 dotenv.config();
-// methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-
-// app.use(
-//   cors({
-//     origin: process.env.CORS_ORIGIN,
-//     allowedHeaders: ["Content-Type", "Authorization"],
-//     credentials: true,
-//   })
-// );
 
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",")
@@ -44,7 +35,6 @@ app.use(cookieParser());
 import authRouter from "./routes/auth.route.js";
 import userRouter from "./routes/user.route.js";
 import customerRouter from "./routes/customer.route.js";
-import orderRouter from "./routes/order.route.js";
 import AIRouter from "./routes/ai.route.js";
 import globalErrorHandler from "./middleware/errorhandler.middleware.js";
 import churnRouter from "./routes/churn.route.js"
@@ -58,7 +48,6 @@ app.use("/api/recommendations", recommendRouter)
 app.use("/api/enrich", enrichRouter)
 app.use("/api/user", userRouter);
 app.use("/api/customer", customerRouter);
-app.use("/api/order", orderRouter);
 app.use("/api/ai", AIRouter);
 // https://localhost:8000/api/v1/users/xyz
 

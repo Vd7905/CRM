@@ -49,41 +49,6 @@ export default function SegmentCustomerAnalytics() {
   useEffect(() => { if (isAreaChartInView) setAreaKey(prev => prev + 1); }, [isAreaChartInView]);
   useEffect(() => { if (isPieChartInView) setPieKey(prev => prev + 1); }, [isPieChartInView]);
   
-
-  // Fetch customers from backend using segmentId
-//    useEffect(() => {
-//     if (!segmentId) return;
-
-//     const fetchCustomers = async () => {
-//   setLoading(true);
-//   try {
-//     const response = await api.post("/api/enrich/analyse", {
-//       segmentId: segmentId,
-//     },
-//     {Authorization: `Bearer ${localStorage.getItem("token")}`}
-//   );
-
-//     if (Array.isArray(response.data)) {
-//       setCustomers(response.data);
-//     } else if (response.data?.data && Array.isArray(response.data.data)) {
-//       setCustomers(response.data.data);
-//     } else {
-//       console.warn("Unexpected response format:", response.data);
-//       setCustomers([]);
-//     }
-
-//     //console.log("Fetched Customers:", response.data);
-//   } catch (err) {
-//     console.error("Error fetching customers:", err);
-//     setCustomers([]);
-//   } finally {
-//     setLoading(false);
-//   }
-// };
-
-//     fetchCustomers();
-//   }, [segmentId]);
-
 const fetchedOnce = useRef(false);
 
 useEffect(() => {

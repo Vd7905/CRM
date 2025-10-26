@@ -117,4 +117,29 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Autofill fix that respects theme variables */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px var(--background) inset !important;
+    -webkit-text-fill-color: var(--foreground) !important;
+    caret-color: var(--foreground);
+    transition: background-color 9999s ease-in-out 0s !important;
+  }
+
+  /* Optional — prevent brief white flash on autofill */
+  input:-internal-autofill-selected {
+    background-color: transparent !important;
+    color: var(--foreground) !important;
+  }
+
+  /* For Firefox and non-WebKit browsers */
+  input:autofill,
+  input:autofill:hover,
+  input:autofill:focus {
+    background-color: var(--background) !important;
+    color: var(--foreground) !important;
+  }
 }

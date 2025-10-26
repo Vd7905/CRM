@@ -47,6 +47,7 @@ export default function CustomerAnalytics() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const fileInputRef = useRef(null);
 
+
   // Fetch enriched customers
   const fetchedOnce = useRef(false);
   useEffect(() => {
