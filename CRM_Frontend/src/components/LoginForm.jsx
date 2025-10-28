@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -17,7 +17,6 @@ import Interactive3DScene from "./3D/Interactive3DScene";
 import ThemeToggle from "./ThemeToggle/ThemeToggle";
 import api from "@/utils/axios";
 import { toast } from "sonner";
-import { useContext } from "react";
 import { AuthContext } from "@/context/AuthContext";
 
 export default function LoginForm() {
@@ -33,18 +32,32 @@ export default function LoginForm() {
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
 
+  // debug helper to see if something cleared localStorage
+  useEffect(() => {
+    console.info("LoginForm mounted — theme, color in localStorage:", {
+      theme: localStorage.getItem("theme"),
+      color: localStorage.getItem("color"),
+    });
+  }, []);
 
-  // ✅ Save tokens & user properly
+  // Save tokens & user properly
   const storeUserData = (user, accessToken, refreshToken) => {
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
+    try {
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      console.info("stored user data in localStorage");
+    } catch (e) {
+      console.error("Failed to write localStorage", e);
+    }
   };
 
-  // ================= AUTH HANDLER =================
+  // AUTH HANDLER (called from form submit)
   const handleAuth = async () => {
+    console.log("handleAuth called — isSignup:", isSignup, "email:", email);
     if (!email || !password || (isSignup && !name)) {
-      return toast.error("Please fill in all fields");
+      toast.error("Please fill in all fields");
+      return;
     }
 
     setIsLoading(true);
@@ -54,6 +67,7 @@ export default function LoginForm() {
     try {
       const res = await api.post(endpoint, payload);
       const { user, accessToken, refreshToken } = res.data?.data || {};
+      console.log("auth response", res.data);
 
       if (user && accessToken && refreshToken) {
         storeUserData(user, accessToken, refreshToken);
@@ -64,14 +78,17 @@ export default function LoginForm() {
         toast.error("Invalid response from server");
       }
     } catch (err) {
+      console.warn("auth error", err);
+      // don't clear localStorage here
       toast.error(err.response?.data?.message || "Authentication failed.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ================= GOOGLE LOGIN =================
+  // GOOGLE LOGIN
   const handleGoogleLogin = async (credentialResponse) => {
+    console.log("google credentialResponse", credentialResponse);
     if (!credentialResponse?.credential) {
       return toast.error("No Google token received");
     }
@@ -81,9 +98,7 @@ export default function LoginForm() {
       const res = await api.post("/api/auth/google-login", {
         token: credentialResponse.credential,
       });
-
       const { user, accessToken, refreshToken } = res.data?.data || {};
-
       if (user && accessToken && refreshToken) {
         storeUserData(user, accessToken, refreshToken);
         setUser(user);
@@ -99,8 +114,11 @@ export default function LoginForm() {
     }
   };
 
-  // ================= FORGOT PASSWORD =================
-  const handleForgotPassword = async () => {
+  // FORGOT PASSWORD
+  const handleForgotPassword = async (e) => {
+    // when used inside a form, prevent default; if called directly e may be undefined
+    if (e && e.preventDefault) e.preventDefault();
+
     if (!forgotEmail) return toast.error("Please enter your email");
 
     setIsForgotLoading(true);
@@ -118,13 +136,19 @@ export default function LoginForm() {
     }
   };
 
+  // top-level form submit handler stops any native reload
+  const onSubmit = (e) => {
+    e.preventDefault(); // important — prevents browser form submit reload
+    handleAuth();
+  };
+
   return (
     <GoogleOAuthProvider clientId="415720389429-kui61m56c3ed542fcoo8vik6otjb3e1g.apps.googleusercontent.com">
       <div className="min-h-screen relative overflow-hidden bg-[var(--background)] text-[var(--text)]">
         <ThemeToggle />
 
         <div className="grid lg:grid-cols-2 min-h-screen">
-          {/* ===== 3D Scene + Heading ===== */}
+          {/* 3D Scene + Heading */}
           <div className="grid lg:grid-cols-2 relative">
             <div className="absolute inset-0 lg:static z-0 opacity-40 lg:opacity-100 pointer-events-none">
               <Interactive3DScene />
@@ -139,7 +163,7 @@ export default function LoginForm() {
             </div>
           </div>
 
-          {/* ===== Login / Signup Form ===== */}
+          {/* Login / Signup Form */}
           <div className="flex items-center justify-center p-6 lg:p-8 bg-[var(--background)]/50 backdrop-blur-xl overflow-y-auto">
             <div className="w-full max-w-sm">
               <Card className="backdrop-blur-xl border shadow-2xl bg-[var(--card)]">
@@ -153,7 +177,8 @@ export default function LoginForm() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  <div className="space-y-3">
+                  {/* FORM: handles Enter and prevents native reload */}
+                  <form onSubmit={onSubmit} autoComplete="off" noValidate className="space-y-3">
                     {isSignup && (
                       <div className="space-y-2">
                         <Label htmlFor="name">Name</Label>
@@ -161,6 +186,7 @@ export default function LoginForm() {
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
                           <Input
                             id="name"
+                            name="name"
                             type="text"
                             placeholder="Enter your name"
                             value={name}
@@ -177,6 +203,7 @@ export default function LoginForm() {
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
                         <Input
                           id="email"
+                          name="email"
                           type="email"
                           placeholder="Enter your email"
                           value={email}
@@ -192,6 +219,7 @@ export default function LoginForm() {
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
                         <Input
                           id="password"
+                          name="password"
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter password"
                           value={password}
@@ -200,7 +228,7 @@ export default function LoginForm() {
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPassword(!showPassword)}
+                          onClick={() => setShowPassword((s) => !s)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/60"
                         >
                           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -220,14 +248,18 @@ export default function LoginForm() {
                       )}
                     </div>
 
+                    {/* submit button — type=submit so onSubmit runs; no page reload */}
                     <Button
-                      onClick={handleAuth}
+                      type="submit"
                       className="w-full h-10 bg-[var(--primary)] hover:bg-[var(--secondary)] text-[var(--card)] font-medium transition-all"
                       disabled={isLoading}
                     >
                       {isLoading ? "Processing..." : isSignup ? "Sign Up" : "Sign In"}
                     </Button>
+                  </form>
 
+                  {/* Put GoogleLogin OUTSIDE the form to be safe */}
+                  <div className="mt-3">
                     <GoogleLogin
                       onSuccess={handleGoogleLogin}
                       onError={() => toast.error("Google login failed")}
@@ -235,17 +267,16 @@ export default function LoginForm() {
                       text="continue_with"
                       width="100%"
                     />
+                  </div>
 
-                    <div className="text-center">
-                      <button
-                        onClick={() => setIsSignup(!isSignup)}
-                        className="text-[var(--primary)] hover:text-[var(--secondary)] font-semibold text-sm mt-2"
-                      >
-                        {isSignup
-                          ? "Already have an account? Sign In"
-                          : "New user? Sign Up here"}
-                      </button>
-                    </div>
+                  <div className="text-center mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsSignup((s) => !s)}
+                      className="text-[var(--primary)] hover:text-[var(--secondary)] font-semibold text-sm mt-2"
+                    >
+                      {isSignup ? "Already have an account? Sign In" : "New user? Sign Up here"}
+                    </button>
                   </div>
                 </CardContent>
               </Card>
@@ -253,11 +284,12 @@ export default function LoginForm() {
           </div>
         </div>
 
-        {/* ===== Forgot Password Modal ===== */}
+        {/* Forgot Password Modal */}
         {showForgotModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-[var(--card)] p-6 rounded-2xl shadow-2xl w-80 relative backdrop-blur-lg border">
               <button
+                type="button"
                 onClick={() => setShowForgotModal(false)}
                 className="absolute top-3 right-3 text-[var(--foreground)]/70"
               >
@@ -269,20 +301,22 @@ export default function LoginForm() {
               <p className="text-sm text-center text-[var(--foreground)]/70 mb-4">
                 Enter your email and we’ll send you a password reset link.
               </p>
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                className="mb-4"
-              />
-              <Button
-                onClick={handleForgotPassword}
-                disabled={isForgotLoading}
-                className="w-full h-10 bg-[var(--primary)] hover:bg-[var(--secondary)] text-[var(--card)]"
-              >
-                {isForgotLoading ? "Sending..." : "Send Reset Link"}
-              </Button>
+              <form onSubmit={handleForgotPassword} noValidate>
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  className="mb-4"
+                />
+                <Button
+                  type="submit"
+                  disabled={isForgotLoading}
+                  className="w-full h-10 bg-[var(--primary)] hover:bg-[var(--secondary)] text-[var(--card)]"
+                >
+                  {isForgotLoading ? "Sending..." : "Send Reset Link"}
+                </Button>
+              </form>
             </div>
           </div>
         )}

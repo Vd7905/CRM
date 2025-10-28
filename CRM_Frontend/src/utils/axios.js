@@ -2,7 +2,7 @@ import axios from "axios";
 
 const api = axios.create({
  //baseURL: "http://localhost:8000",
-   baseURL:   "http://192.168.43.141:8000",
+   baseURL:   "http://192.168.1.7:8000",
   headers: { "Content-Type": "application/json" },
 });
 
@@ -37,8 +37,12 @@ api.interceptors.response.use(
         return api.request(originalRequest);
       } catch (refreshError) {
         console.error("Token refresh failed", refreshError);
-        localStorage.clear();
-        window.location.href = "/login";
+        //  localStorage.clear();
+        //  window.location.href = "/login";
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("user");
+        window.location.replace("/login");
       }
     }
 

@@ -17,23 +17,7 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [theme, setTheme] = useState("light"); // default theme
-
-  // Load theme from localStorage on mount
-  useEffect(() => {
-    const storedTheme = localStorage.getItem("theme");
-    if (storedTheme) {
-      setTheme(storedTheme);
-      document.documentElement.setAttribute("data-theme", storedTheme);
-    }
-  }, []);
-
-  // Update localStorage and html attribute when theme changes
-  useEffect(() => {
-    localStorage.setItem("theme", theme);
-    document.documentElement.setAttribute("data-theme", theme);
-  }, [theme]);
-
+  
  const handleReset = async () => {
   if (!password || !confirmPassword) {
     return toast.error("Please fill both fields");
@@ -65,7 +49,7 @@ export default function ResetPassword() {
       className="min-h-screen flex items-center justify-center"
       style={{ background: "var(--background)", color: "var(--text)" }}
     >
-      <ThemeToggle theme={theme} setTheme={setTheme} />
+      <ThemeToggle/>
       <div className="w-full max-w-md p-6">
         <Card className="backdrop-blur-xl border shadow-2xl bg-[var(--card)]">
           <CardHeader className="text-center space-y-2 pb-6">
