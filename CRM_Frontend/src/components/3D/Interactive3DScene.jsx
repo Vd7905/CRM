@@ -12,7 +12,7 @@ export default function Interactive3DScene() {
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
-
+    
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, mount.clientWidth / mount.clientHeight, 0.1, 1000);
     camera.position.z = 5;
@@ -77,3 +77,7 @@ export default function Interactive3DScene() {
 
   return <div ref={mountRef} className="absolute inset-0 w-full h-full pointer-events-auto" />;
 }
+
+
+
+

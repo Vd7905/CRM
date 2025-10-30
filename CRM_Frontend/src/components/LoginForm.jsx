@@ -32,14 +32,7 @@ export default function LoginForm() {
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
 
-  // debug helper to see if something cleared localStorage
-  useEffect(() => {
-    console.info("LoginForm mounted — theme, color in localStorage:", {
-      theme: localStorage.getItem("theme"),
-      color: localStorage.getItem("color"),
-    });
-  }, []);
-
+  
   // Save tokens & user properly
   const storeUserData = (user, accessToken, refreshToken) => {
     try {
@@ -265,7 +258,7 @@ export default function LoginForm() {
                       onError={() => toast.error("Google login failed")}
                       size="large"
                       text="continue_with"
-                      width="100%"
+                      width="100vw"
                     />
                   </div>
 
