@@ -36,9 +36,8 @@ export const recommendations = async (req, res) => {
 
 const isDocker = process.env.DOCKER_ENV === "true";
 
-const ML_URL = isDocker
-  ? process.env.ML_SERVICE_URL || "http://ml_service:8001"
-  : "http://127.0.0.1:8001";
+const ML_URL = process.env.ML_SERVICE_URL || "https://crm-ml-service.onrender.com";
+console.log("🧠 ML Service URL →", ML_URL);
 
 console.log(`🧠 ML Service URL → ${ML_URL}`);
 

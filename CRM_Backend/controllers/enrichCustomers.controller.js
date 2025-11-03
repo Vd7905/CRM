@@ -18,7 +18,7 @@ export const enrichCustomers = async (req, res) => {
 
     // Step 1: Fetch customers from segment
     const segmentResponse = await axios.get(
-      `http://localhost:8000/api/user/get-all-customers/${segmentId}`,
+      `https://crm-crm-backend.onrender.com/api/user/get-all-customers/${segmentId}`,
       {
         headers: {
           Authorization: `Bearer ${req.headers.authorization?.split(" ")[1]}`,
@@ -55,9 +55,8 @@ export const enrichCustomers = async (req, res) => {
     });
 const isDocker = process.env.DOCKER_ENV === "true";
 
-const ML_URL = isDocker
-  ? process.env.ML_SERVICE_URL || "http://ml_service:8001"
-  : "http://127.0.0.1:8001";
+const ML_URL = process.env.ML_SERVICE_URL || "https://crm-ml-service.onrender.com";
+console.log("🧠 ML Service URL →", ML_URL);
 
 console.log(`🧠 ML Service URL → ${ML_URL}`);
 
