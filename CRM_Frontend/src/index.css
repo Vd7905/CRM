@@ -143,3 +143,11 @@
     color: var(--foreground) !important;
   }
 }
+
+
+/* Prevent global Tailwind reset from affecting Google buttons */
+iframe[src*="accounts.google.com"] {
+  border-radius: 0 !important;
+  background: none !important;
+  filter: none !important;
+}

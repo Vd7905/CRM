@@ -252,14 +252,25 @@ export default function LoginForm() {
                   </form>
 
                   {/* Put GoogleLogin OUTSIDE the form to be safe */}
-                  <div className="mt-3">
-                    <GoogleLogin
+                  <div className="flex justify-center mt-3">
+                    {/* <GoogleLogin
                       onSuccess={handleGoogleLogin}
                       onError={() => toast.error("Google login failed")}
                       size="large"
                       text="continue_with"
                       width="100vw"
-                    />
+                    /> */}
+                    <GoogleLogin
+  onSuccess={handleGoogleLogin}
+  onError={() => toast.error("Google login failed")}
+  theme="outline"          // keeps Google's default white look
+  shape="rectangular"      // makes button rectangular
+  size="large"
+  text="continue_with"
+  width="300"              // set fixed width (responsive)
+  logo_alignment="left"    // proper Google branding alignment
+/>
+
                   </div>
 
                   <div className="text-center mt-3">

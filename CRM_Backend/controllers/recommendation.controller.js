@@ -39,7 +39,6 @@ const isDocker = process.env.DOCKER_ENV === "true";
 const ML_URL = process.env.ML_SERVICE_URL || "https://crm-ml-service.onrender.com";
 console.log("🧠 ML Service URL →", ML_URL);
 
-console.log(`🧠 ML Service URL → ${ML_URL}`);
 
     // Call FastAPI recommendation endpoint
     const response = await axios.post(

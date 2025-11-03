@@ -56,8 +56,6 @@ export const enrichAllCustomers = async (req, res) => {
 const ML_URL = process.env.ML_SERVICE_URL || "https://crm-ml-service.onrender.com";
 console.log("🧠 ML Service URL →", ML_URL);
 
-console.log(`🧠 ML Service URL → ${ML_URL}`);
-
 
     // Step 4: Call FastAPI churn prediction endpoint
     const churnResponse = await axios.post(`${ML_URL}/predict-churn`, churnPayload);

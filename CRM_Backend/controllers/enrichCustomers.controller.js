@@ -58,8 +58,6 @@ const isDocker = process.env.DOCKER_ENV === "true";
 const ML_URL = process.env.ML_SERVICE_URL || "https://crm-ml-service.onrender.com";
 console.log("🧠 ML Service URL →", ML_URL);
 
-console.log(`🧠 ML Service URL → ${ML_URL}`);
-
 
     // Step 3: Call FastAPI churn endpoint
     const churnResponse = await axios.post(
