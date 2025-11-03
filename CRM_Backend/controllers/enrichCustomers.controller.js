@@ -1,4 +1,6 @@
 import axios from "axios";
+import dotenv from "dotenv";
+dotenv.config();
 
 // Helper for days between dates
 function daysBetween(date1, date2) {
@@ -51,10 +53,18 @@ export const enrichCustomers = async (req, res) => {
         churn_probability: null, // Not known yet
       };
     });
+const isDocker = process.env.DOCKER_ENV === "true";
+
+const ML_URL = isDocker
+  ? process.env.ML_SERVICE_URL || "http://ml_service:8001"
+  : "http://127.0.0.1:8001";
+
+console.log(`🧠 ML Service URL → ${ML_URL}`);
+
 
     // Step 3: Call FastAPI churn endpoint
     const churnResponse = await axios.post(
-      "http://127.0.0.1:8001/predict-churn",
+      `${ML_URL}/predict-churn`,
       churnPayload
     );
 
@@ -84,7 +94,7 @@ export const enrichCustomers = async (req, res) => {
     // ...existing code...
     // Step 5: Call FastAPI recommendation endpoint
     const recommendResponse = await axios.post(
-      "http://127.0.0.1:8001/recommend",
+      `${ML_URL}/recommend`,
       recommendPayload
     );
 

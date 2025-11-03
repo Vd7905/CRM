@@ -1,0 +1,40 @@
+services:
+  # 🧱 Backend (Node.js / Express)
+  backend:
+    build: ./CRM_Backend
+    container_name: crm_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./CRM_Backend/.env
+    environment:
+      - DOCKER_ENV=true  
+    depends_on:
+      - ml_service
+    networks:
+      - crm_net
+
+  # 🧠 ML Service (FastAPI + Uvicorn)
+  ml_service:
+    build: ./ML_Service
+    container_name: crm_ml_service
+    ports:
+      - "8001:8001"
+    env_file:
+      - ./ML_Service/.env
+    networks:
+      - crm_net
+
+  # 🎨 Frontend (Vite + React)
+  frontend:
+    build: ./CRM_Frontend
+    container_name: crm_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - crm_net
+networks:
+  crm_net:
+    driver: bridge

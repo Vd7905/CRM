@@ -1,0 +1,44 @@
+# Python cache and build files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.sqlite3
+*.db
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+
+# Datasets / temporary artifacts
+*.csv
+*.json
+*.h5
+*.npy
+
+# Models (optional, if you mount or fetch externally)
+# models/
+
+# OS / IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Version control
+.git
+.gitignore
+.dockerignore
+
+# Docker build file
+Dockerfile

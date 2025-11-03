@@ -1,6 +1,8 @@
 import axios from "axios";
 import { Customer } from "../models/customer.model.js";
 import mongoose from "mongoose";
+import dotenv from "dotenv";
+dotenv.config();
 
 // Helper: days between two dates
 function daysBetween(date1, date2) {
@@ -49,8 +51,17 @@ export const enrichAllCustomers = async (req, res) => {
       };
     });
 
+  const isDocker = process.env.DOCKER_ENV === "true";
+
+const ML_URL = isDocker
+  ? process.env.ML_SERVICE_URL || "http://ml_service:8001"
+  : "http://127.0.0.1:8001";
+
+console.log(`🧠 ML Service URL → ${ML_URL}`);
+
+
     // Step 4: Call FastAPI churn prediction endpoint
-    const churnResponse = await axios.post("http://127.0.0.1:8001/predict-churn", churnPayload);
+    const churnResponse = await axios.post(`${ML_URL}/predict-churn`, churnPayload);
 
     // Step 5: Merge churn predictions
     const customersWithChurn = customers.map((c, index) => ({
@@ -76,7 +87,7 @@ export const enrichAllCustomers = async (req, res) => {
     }));
 
     // Step 7: Call FastAPI recommendation endpoint
-    const recommendResponse = await axios.post("http://127.0.0.1:8001/recommend", recommendPayload);
+    const recommendResponse = await axios.post(`${ML_URL}/recommend`, recommendPayload);
 
     // Step 8: Merge recommendations
     const enrichedCustomers = customersWithChurn.map((c, index) => ({

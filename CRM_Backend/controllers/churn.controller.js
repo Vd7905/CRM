@@ -1,4 +1,7 @@
 import axios from "axios";
+import dotenv from "dotenv";
+dotenv.config();
+
 
 // 🔹 Helper function to calculate days between dates
 const daysBetween = (date1, date2) => {
@@ -47,9 +50,18 @@ export const predictChurn = async (req, res) => {
         tenure,
       };
     });
+    
+const isDocker = process.env.DOCKER_ENV === "true";
+
+const ML_URL = isDocker
+  ? process.env.ML_SERVICE_URL || "http://ml_service:8001"
+  : "http://127.0.0.1:8001";
+
+console.log(`🧠 ML Service URL → ${ML_URL}`);
+
 
     // 3️⃣ Call FastAPI churn endpoint
-    const response = await axios.post("http://127.0.0.1:8001/predict-churn", payload);
+    const response = await axios.post(`${ML_URL}/predict-churn`, payload);
 
     // 👀 Debug: log FastAPI response
     console.log("FastAPI response:", response.data);
