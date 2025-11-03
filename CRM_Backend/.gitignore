@@ -1,0 +1,47 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# Logs
+logs
+*.log
+logs/*
+debug.log
+error.log
+
+# Build artifacts
+dist/
+build/
+
+# Cache and temporary files
+.cache/
+.tmp/
+.DS_Store
+
+# Coverage (from tests)
+coverage/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE / Editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Misc
+*.pid
+*.seed
+*.tgz

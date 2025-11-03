@@ -1,0 +1,50 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Logs and outputs
+*.log
+logs/
+*.out
+
+# Jupyter notebooks (optional)
+notebooks/
+*.ipynb
+
+# Model files (if you don't want to expose them)
+*.pkl
+*.joblib
+*.json
+*.h5
+*.pt
+models/
+
+# Cache and temp
+*.cache/
+__pycache__/
+tmp/
+.DS_Store
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
