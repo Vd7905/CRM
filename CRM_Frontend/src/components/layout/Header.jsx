@@ -50,6 +50,9 @@ export function Header() {
   };
 
   const handleLogout = async () => {
+
+    const loadingToast = toast.loading("Logging out...")
+
     try {
       await api.post("/api/auth/logout");
 
@@ -61,7 +64,9 @@ export function Header() {
       setName(null);
       setEmail(null);
       setUser(null); // update context
-
+      
+      toast.dismiss(loadingToast);
+      
       navigate("/login", { replace: true });
       toast.success("Logged out successfully!");
     } catch (err) {

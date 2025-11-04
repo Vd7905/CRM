@@ -52,27 +52,6 @@ export default function SegmentCustomerAnalytics() {
 const fetchedOnce = useRef(false);
 
 
-
-// Retry helper (inline)
-const retryApiPost = async (endpoint, data = {}, config = {}, retries = 10, delay = 10000) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await api.post(endpoint, data, config);
-      if (res.status === 200 && res.data) return res;
-      throw new Error(`Bad response: ${res.status}`);
-    } catch (err) {
-      if (i < retries - 1) {
-        console.warn(`Attempt ${i + 1} failed, retrying in ${delay / 1000}s...`);
-        await new Promise((r) => setTimeout(r, delay));
-      } else {
-        throw err;
-      }
-    }
-  }
-};
-
-
-
 // useEffect(() => {
 //   if (!segmentId) return;
 
@@ -116,65 +95,113 @@ const retryApiPost = async (endpoint, data = {}, config = {}, retries = 10, dela
 // }, [segmentId]);
 
 
-
 useEffect(() => {
   if (!segmentId) return;
   if (fetchedOnce.current) return;
   fetchedOnce.current = true;
 
-  // 🔁 Retry helper (inline)
-  const retryApiPost = async (endpoint, data = {}, config = {}, retries = 10, delay = 5000) => {
-    for (let i = 0; i < retries; i++) {
-      try {
-        const res = await api.post(endpoint, data, config);
-        if (res.status === 200 && res.data) return res;
-        throw new Error(`Bad response: ${res.status}`);
-      } catch (err) {
-        if (i < retries - 1) {
-          console.warn(`Attempt ${i + 1} failed, retrying in ${delay / 1000}s...`);
-          await new Promise((r) => setTimeout(r, delay));
-        } else {
-          throw err;
-        }
+  const WAKE_WAIT_MS = 60000;   // Render cold start (~50s)
+  const FIRST_TIMEOUT = 8000;   // abort first call fast
+  const RETRY_TIMEOUT = 15000;  // longer timeout after wake
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  const token = localStorage.getItem("token");
+
+  const wakeUpUrl = "https://crm-ml-service.onrender.com/";
+  const dataUrl = "/api/enrich/analyse";
+
+  // POST /api/enrich/analyse with timeout
+  const fetchDataWithTimeout = async (timeoutMs) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await api.post(
+        dataUrl,
+        { segmentId },
+        { signal: controller.signal, headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (Array.isArray(res.data)) {
+        setCustomers(res.data);
+        return res.data.length;
+      } else if (Array.isArray(res.data?.data)) {
+        setCustomers(res.data.data);
+        return res.data.data.length;
       }
+      setCustomers([]);
+      throw new Error("No customers found");
+    } finally {
+      clearTimeout(timer);
     }
   };
 
-  const fetchCustomers = async () => {
-    setLoading(true);
-    const token = localStorage.getItem("token");
-
-    await toast.promise(
-      retryApiPost(
-        "https://crm-ml-service.onrender.com/",
-        { segmentId: segmentId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      ),
-      {
-        loading: "Fetching customers for this segment...",
-        success: (res) => {
-          if (Array.isArray(res.data)) {
-            setCustomers(res.data);
-            console.log(res.data);
-            return `Fetched ${res.data.length} customers of your segment successfully!`;
-          } else if (res.data?.data && Array.isArray(res.data.data)) {
-            setCustomers(res.data.data);
-            return `Fetched ${res.data.data.length} customers successfully!`;
-          } else {
-            setCustomers([]);
-            return "No customers found for this segment";
-          }
-        },
-        error: "Failed to connect to ML service after multiple attempts 😞",
-      }
-    );
-
-    setLoading(false);
+  const pingRenderRoot = async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000); // 3s safety
+    try {
+      await fetch(wakeUpUrl, { mode: "no-cors", cache: "no-store", signal: controller.signal });
+    } catch {
+      /* ignore network errors */
+    } finally {
+      clearTimeout(timeout);
+    }
   };
 
-  fetchCustomers();
-}, [segmentId]);
+  (async () => {
+    setLoading(true);
 
+    // 1️⃣ Try normal fetch first
+    const loadId = toast.loading("Fetching customers for this segment…");
+    let ok = false;
+    try {
+      const count = await fetchDataWithTimeout(FIRST_TIMEOUT);
+      toast.dismiss(loadId);
+      toast.success(`Fetched ${count} customers of your segment`);
+      ok = true;
+    } catch (e) {
+      toast.dismiss(loadId);
+      toast.warning("Initial fetch failed/timed out — ML server may be asleep");
+    }
+
+    if (ok) {
+      setLoading(false);
+      return;
+    }
+
+    // 2️⃣ Wake Render ML service (never loops endlessly)
+    const pingId = "wake-ping";
+    toast.loading("Pinging ML server to wake up…", { id: pingId });
+    await pingRenderRoot();
+    toast.dismiss(pingId);
+
+    // 3️⃣ Countdown while server wakes (~50s)
+    let remaining = Math.ceil(WAKE_WAIT_MS / 1000);
+    const waitId = "wake-wait";
+    toast.loading(`Waking ML server… (~${remaining}s)`, { id: waitId });
+    const tick = setInterval(() => {
+      remaining = Math.max(0, remaining - 5);
+      toast.loading(`Waking ML server… (~${remaining}s)`, { id: waitId });
+    }, 5000);
+
+    await sleep(WAKE_WAIT_MS);
+    clearInterval(tick);
+    toast.dismiss(waitId);
+
+    // 4️⃣ Retry fetch
+    const retryId = toast.loading("Retrying data fetch after wake-up…");
+    try {
+      const count = await fetchDataWithTimeout(RETRY_TIMEOUT);
+      toast.dismiss(retryId);
+      toast.success(`ML server awake — fetched ${count} customers`);
+    } catch (e) {
+      toast.dismiss(retryId);
+      toast.error("Still couldn’t fetch after wake-up. Please try again shortly");
+      console.error("Retry failed:", e?.message || e);
+    }
+
+    setLoading(false);
+  })();
+}, [segmentId]);
 
   // Derived metrics
   const stats = useMemo(() => {

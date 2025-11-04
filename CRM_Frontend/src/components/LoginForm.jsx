@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useContext, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useRef,useState, useContext, useEffect } from "react";
+import {useNavigate } from "react-router-dom";
 import {
   Card,
   CardHeader,
@@ -80,32 +80,137 @@ export default function LoginForm() {
   };
 
   // GOOGLE LOGIN
-  const handleGoogleLogin = async (credentialResponse) => {
-    console.log("google credentialResponse", credentialResponse);
-    if (!credentialResponse?.credential) {
-      return toast.error("No Google token received");
-    }
+  // const handleGoogleLogin = async (credentialResponse) => {
+  //   console.log("google credentialResponse", credentialResponse);
+  //   if (!credentialResponse?.credential) {
+  //     return toast.error("No Google token received");
+  //   }
 
-    setIsLoading(true);
-    try {
-      const res = await api.post("/api/auth/google-login", {
-        token: credentialResponse.credential,
-      });
-      const { user, accessToken, refreshToken } = res.data?.data || {};
-      if (user && accessToken && refreshToken) {
-        storeUserData(user, accessToken, refreshToken);
-        setUser(user);
-        toast.success("Google login successful!");
-        navigate("/", { replace: true });
-      } else {
-        toast.error("Invalid response from server");
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Google login failed");
-    } finally {
-      setIsLoading(false);
+  //   setIsLoading(true);
+  //   try {
+  //     const res = await api.post("/api/auth/google-login", {
+  //       token: credentialResponse.credential,
+  //     });
+  //     const { user, accessToken, refreshToken } = res.data?.data || {};
+  //     if (user && accessToken && refreshToken) {
+  //       storeUserData(user, accessToken, refreshToken);
+  //       setUser(user);
+  //       toast.success("Google login successful!");
+  //       navigate("/", { replace: true });
+  //     } else {
+  //       toast.error("Invalid response from server");
+  //     }
+  //   } catch (err) {
+  //     toast.error(err.response?.data?.message || "Google login failed");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+    
+  // inside component body:
+const googleDivRef = useRef(null);
+const GOOGLE_CLIENT_ID =
+  "415720389429-kui61m56c3ed542fcoo8vik6otjb3e1g.apps.googleusercontent.com";
+
+const handleGoogleLogin = async (response) => {
+  const token = response?.credential;
+  if (!token) return toast.error("No Google token received");
+
+  const toastId = toast.loading("Signing in with Google...");
+  try {
+    const res = await api.post("/api/auth/google-login", { token });
+    const { user, accessToken, refreshToken } = res.data?.data || {};
+    if (user && accessToken && refreshToken) {
+      storeUserData(user, accessToken, refreshToken);
+      setUser(user);
+      toast.dismiss(toastId);
+      toast.success("Google login successful!");
+      navigate("/", { replace: true });
+    } else {
+      toast.dismiss(toastId);
+      toast.error("Invalid response from server");
     }
+  } catch (err) {
+    toast.dismiss(toastId);
+    toast.error(err.response?.data?.message || "Google login failed");
+  }
+};
+
+// ✅ Load script & render button responsively
+useEffect(() => {
+  const loadScript = () => {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = renderGoogleButton;
+    document.body.appendChild(script);
   };
+
+  if (window.google) renderGoogleButton();
+  else loadScript();
+
+  // re-render button on window resize (for true responsiveness)
+  const handleResize = () => renderGoogleButton();
+  window.addEventListener("resize", handleResize);
+
+  return () => window.removeEventListener("resize", handleResize);
+}, []);
+
+const renderGoogleButton = () => {
+  if (!window.google || !googleDivRef.current) return;
+
+  // clear previous render if any (important for re-renders)
+  googleDivRef.current.innerHTML = "";
+
+  const containerWidth = googleDivRef.current.offsetWidth;
+  const size = containerWidth < 300 ? "medium" : "large";
+
+  window.google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleLogin,
+  });
+
+  window.google.accounts.id.renderButton(googleDivRef.current, {
+    theme: "outline",
+    size,
+    text: "continue_with",
+    width: containerWidth.toString(),
+    shape: "rectangular",
+    logo_alignment: "left",
+  });
+};
+
+
+  
+//   console.log("google response:", response);
+
+//   const token = response?.credential || response?.access_token;
+//   if (!token) {
+//     return toast.error("No Google token received");
+//   }
+
+//   setIsLoading(true);
+//   try {
+//     const res = await api.post("/api/auth/google-login", { token });
+//     const { user, accessToken, refreshToken } = res.data?.data || {};
+
+//     if (user && accessToken && refreshToken) {
+//       storeUserData(user, accessToken, refreshToken);
+//       setUser(user);
+//       toast.success("Google login successful!");
+//       navigate("/", { replace: true });
+//     } else {
+//       toast.error("Invalid response from server");
+//     }
+//   } catch (err) {
+//     console.error("Google login error:", err);
+//     toast.error(err.response?.data?.message || "Google login failed");
+//   } finally {
+//     setIsLoading(false);
+//   }
+// };
+
 
   // FORGOT PASSWORD
   const handleForgotPassword = async (e) => {
@@ -262,24 +367,52 @@ export default function LoginForm() {
                     />
                   </div> */}
 
-                  {/* ✅ Tailwind + Vercel-safe Google Login */}
-<div className="flex justify-center mt-4">
-  <div className="w-[280px] max-w-full min-h-[44px] flex justify-center items-center">
-    {typeof window !== "undefined" && (
-      <GoogleLogin
-        onSuccess={handleGoogleLogin}
-        onError={() => toast.error("Google login failed")}
-        theme="filled_blue"
-        size="large"
-        shape="rectangular"
-        text="continue_with"
-        width="100%"
-        logo_alignment="left"
+                  <div className="mt-4 w-full flex flex-col items-center">
+  {/* Google renders its button here */}
+  <div
+    ref={googleDivRef}
+    className="w-full flex justify-center items-center transition-all duration-300"
+    style={{ minHeight: "42px" }}
+  />
+
+  {/* Fallback button while Google SDK loads */}
+  {!window.google && (
+    <Button
+      disabled
+      className="
+        w-full 
+        h-10 
+        flex
+        items-center 
+        justify-center 
+        gap-3 
+        rounded-lg 
+        font-medium 
+        border 
+        border-border 
+        bg-[var(--card)] 
+        hover:bg-[var(--muted)] 
+        text-[var(--foreground)]
+        transition-all 
+        duration-200 
+        sm:h-11 
+        sm:text-base 
+        text-sm
+      "
+    >
+      <img
+        src='https://developers.google.com/identity/images/g-logo.png'
+        alt='Google'
+        className='w-5 h-5'
       />
-    )}
-  </div>
+      Continue with Google
+    </Button>
+  )}
 </div>
 
+
+
+                   
 
                   <div className="text-center mt-3">
                     <button

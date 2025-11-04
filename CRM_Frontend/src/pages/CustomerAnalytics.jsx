@@ -48,25 +48,6 @@ export default function CustomerAnalytics() {
   const fileInputRef = useRef(null);
 
 
-  // Retry helper (inline)
-const retryApiPost = async (endpoint, data = {}, retries = 10, delay = 10000) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await api.post(endpoint, data);
-      if (res.status === 200 && res.data) return res;
-      throw new Error(`Bad response: ${res.status}`);
-    } catch (err) {
-      if (i < retries - 1) {
-        console.warn(`Attempt ${i + 1} failed, retrying in ${delay / 1000}s...`);
-        await new Promise((r) => setTimeout(r, delay));
-      } else {
-        throw err;
-      }
-    }
-  }
-};
-
-
 
   // Fetch enriched customers
   // const fetchedOnce = useRef(false);
@@ -93,29 +74,102 @@ const retryApiPost = async (endpoint, data = {}, retries = 10, delay = 10000) =>
   // }, []);
 
 
- const fetchedOnce = useRef(false);
-  useEffect(() => {
-    if(fetchedOnce.current) return;
-    fetchedOnce.current = true;
-    const fetchEnrichedCustomers = async () => {
-      toast.promise(
-  retryApiPost("https://crm-ml-service.onrender.com/"),
-  {
-    loading: "Fetching customer data",
-    success: (res) => {
-      if (res.data && res.data.data) {
-        setCustomers(res.data.data);
-        return `Fetched ${res.data.data.length} customers successfully!`;
-      }
-      return "No customers found";
-    },
-    error: "Failed to connect to ML service after multiple attempts 😞",
-  }
-);
+const fetchedOnce = useRef(false);
 
-    };
-    fetchEnrichedCustomers();
-  }, []);
+useEffect(() => {
+  if (fetchedOnce.current) return;
+  fetchedOnce.current = true;
+
+  const WAKE_WAIT_MS = 60000;   // Render free cold-start can be ~50s
+  const FIRST_TIMEOUT = 8000;   // abort initial hung call fast
+  const RETRY_TIMEOUT = 15000;  // give a bit longer after wake
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // POST /api/enrich/analyse-all with a hard timeout
+  const fetchDataWithTimeout = async (timeoutMs) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await api.post("/api/enrich/analyse-all", {}, { signal: controller.signal });
+      if (res?.data?.data) {
+        setCustomers(res.data.data);
+        return res.data.data.length;
+      }
+      throw new Error("No customers payload");
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  // Ping Render root, but NEVER block on it — race with a short timeout
+  const pingRenderRoot = async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000); // 3s max
+    try {
+      // opaque response in no-cors still resolves; if network stalls, we abort in 3s
+      await fetch("https://crm-ml-service.onrender.com/", {
+        mode: "no-cors",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+    } catch {
+      // ignore — this ping is best-effort
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
+
+  (async () => {
+    // 1) Try normal fetch (short timeout so we don't hang forever)
+    const loadId = toast.loading("Fetching customer data…");
+    let ok = false;
+    try {
+      const count = await fetchDataWithTimeout(FIRST_TIMEOUT);
+      toast.dismiss(loadId);
+      toast.success(`Fetched ${count} customers`);
+      ok = true;
+    } catch (e) {
+      toast.dismiss(loadId);
+      toast.warning("Initial fetch failed/timed out — ML server may be asleep");
+    }
+    if (ok) return;
+
+    // 2) Wake the ML server — do NOT get stuck here
+    const pingId = "wake-ping";
+    toast.loading("Pinging ML server to wake up…", { id: pingId });
+    await pingRenderRoot();
+    toast.dismiss(pingId);
+
+    // 3) Show a single countdown toast while we wait for cold start
+    const waitId = "wake-wait";
+    let remaining = Math.ceil(WAKE_WAIT_MS / 1000);
+    toast.loading(`Waking ML server… (~${remaining}s)`, { id: waitId });
+
+    const tick = setInterval(() => {
+      remaining = Math.max(0, remaining - 5);
+      toast.loading(`Waking ML server… (~${remaining}s)`, { id: waitId });
+    }, 5000);
+
+    await sleep(WAKE_WAIT_MS);
+    clearInterval(tick);
+    toast.dismiss(waitId);
+
+    // 4) Retry fetch with a longer timeout
+    const retryId = toast.loading("Retrying data fetch…");
+    try {
+      const count = await fetchDataWithTimeout(RETRY_TIMEOUT);
+      toast.dismiss(retryId);
+      toast.success(`ML server awake — fetched ${count} customers`);
+    } catch (e) {
+      toast.dismiss(retryId);
+      toast.error("Still couldn't fetch after wake-up. Please try again in a moment.");
+      console.error("Retry failed:", e?.message || e);
+    }
+  })();
+}, []);
+
+
 
 
   // Refs for charts
