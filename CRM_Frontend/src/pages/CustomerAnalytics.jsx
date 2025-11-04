@@ -48,29 +48,75 @@ export default function CustomerAnalytics() {
   const fileInputRef = useRef(null);
 
 
+  // Retry helper (inline)
+const retryApiPost = async (endpoint, data = {}, retries = 10, delay = 5000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await api.post(endpoint, data);
+      if (res.status === 200 && res.data) return res;
+      throw new Error(`Bad response: ${res.status}`);
+    } catch (err) {
+      if (i < retries - 1) {
+        console.warn(`Attempt ${i + 1} failed, retrying in ${delay / 1000}s...`);
+        await new Promise((r) => setTimeout(r, delay));
+      } else {
+        throw err;
+      }
+    }
+  }
+};
+
+
+
   // Fetch enriched customers
-  const fetchedOnce = useRef(false);
+  // const fetchedOnce = useRef(false);
+  // useEffect(() => {
+  //   if(fetchedOnce.current) return;
+  //   fetchedOnce.current = true;
+  //   const fetchEnrichedCustomers = async () => {
+  //    toast.promise(
+  //     api.post("/api/enrich/analyse-all"),
+  //     {
+  //       loading: "Fetching customer data...",
+  //       success: (res) => {
+  //         if (res.data && res.data.data) {
+  //           setCustomers(res.data.data);
+  //           return `Fetched ${res.data.data.length} customers successfully!`;
+  //         }
+  //         return "No customers found";
+  //       },
+  //       error: "Failed to fetch enriched customers",
+  //     }
+  //   );
+  //   };
+  //   fetchEnrichedCustomers();
+  // }, []);
+
+
+ const fetchedOnce = useRef(false);
   useEffect(() => {
     if(fetchedOnce.current) return;
     fetchedOnce.current = true;
     const fetchEnrichedCustomers = async () => {
-     toast.promise(
-      api.post("/api/enrich/analyse-all"),
-      {
-        loading: "Fetching customer data...",
-        success: (res) => {
-          if (res.data && res.data.data) {
-            setCustomers(res.data.data);
-            return `Fetched ${res.data.data.length} customers successfully!`;
-          }
-          return "No customers found";
-        },
-        error: "Failed to fetch enriched customers",
+      toast.promise(
+  retryApiPost("/api/enrich/analyse-all"),
+  {
+    loading: "Fetching customer data",
+    success: (res) => {
+      if (res.data && res.data.data) {
+        setCustomers(res.data.data);
+        return `Fetched ${res.data.data.length} customers successfully!`;
       }
-    );
+      return "No customers found";
+    },
+    error: "Failed to connect to ML service after multiple attempts 😞",
+  }
+);
+
     };
     fetchEnrichedCustomers();
   }, []);
+
 
   // Refs for charts
   const barChartRef = useRef(null);

@@ -51,22 +51,104 @@ export default function SegmentCustomerAnalytics() {
   
 const fetchedOnce = useRef(false);
 
+
+
+// Retry helper (inline)
+const retryApiPost = async (endpoint, data = {}, config = {}, retries = 10, delay = 5000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await api.post(endpoint, data, config);
+      if (res.status === 200 && res.data) return res;
+      throw new Error(`Bad response: ${res.status}`);
+    } catch (err) {
+      if (i < retries - 1) {
+        console.warn(`Attempt ${i + 1} failed, retrying in ${delay / 1000}s...`);
+        await new Promise((r) => setTimeout(r, delay));
+      } else {
+        throw err;
+      }
+    }
+  }
+};
+
+
+
+// useEffect(() => {
+//   if (!segmentId) return;
+
+//   if(fetchedOnce.current) return;
+//     fetchedOnce.current = true;
+
+//   const fetchCustomers = async () => {
+//     setLoading(true);
+
+//     const token = localStorage.getItem("token");
+
+//     await toast.promise(
+//       api.post(
+//         "/api/enrich/analyse",
+//         { segmentId: segmentId },
+//         { headers: { Authorization: `Bearer ${token}` } } // <-- correct headers
+//       ),
+//       {
+//         loading: "Fetching customers for this segment...",
+//         success: (res) => {
+//           if (Array.isArray(res.data)) {
+//             setCustomers(res.data);
+//             console.log(res.data);
+//             return `Fetched ${res.data.length} customers Of Your Segment successfully!`;
+//           } else if (res.data?.data && Array.isArray(res.data.data)) {
+//             setCustomers(res.data.data);
+//             return `Fetched ${res.data.data.length} customers successfully!`;
+//           } else {
+//             setCustomers([]);
+//             return "No customers found for this segment";
+//           }
+//         },
+//         error: "Failed to fetch customers for this segment",
+//       }
+//     );
+
+//     setLoading(false);
+//   };
+
+//   fetchCustomers();
+// }, [segmentId]);
+
+
+
 useEffect(() => {
   if (!segmentId) return;
+  if (fetchedOnce.current) return;
+  fetchedOnce.current = true;
 
-  if(fetchedOnce.current) return;
-    fetchedOnce.current = true;
+  // 🔁 Retry helper (inline)
+  const retryApiPost = async (endpoint, data = {}, config = {}, retries = 10, delay = 5000) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const res = await api.post(endpoint, data, config);
+        if (res.status === 200 && res.data) return res;
+        throw new Error(`Bad response: ${res.status}`);
+      } catch (err) {
+        if (i < retries - 1) {
+          console.warn(`Attempt ${i + 1} failed, retrying in ${delay / 1000}s...`);
+          await new Promise((r) => setTimeout(r, delay));
+        } else {
+          throw err;
+        }
+      }
+    }
+  };
 
   const fetchCustomers = async () => {
     setLoading(true);
-
     const token = localStorage.getItem("token");
 
     await toast.promise(
-      api.post(
+      retryApiPost(
         "/api/enrich/analyse",
         { segmentId: segmentId },
-        { headers: { Authorization: `Bearer ${token}` } } // <-- correct headers
+        { headers: { Authorization: `Bearer ${token}` } }
       ),
       {
         loading: "Fetching customers for this segment...",
@@ -74,7 +156,7 @@ useEffect(() => {
           if (Array.isArray(res.data)) {
             setCustomers(res.data);
             console.log(res.data);
-            return `Fetched ${res.data.length} customers Of Your Segment successfully!`;
+            return `Fetched ${res.data.length} customers of your segment successfully!`;
           } else if (res.data?.data && Array.isArray(res.data.data)) {
             setCustomers(res.data.data);
             return `Fetched ${res.data.data.length} customers successfully!`;
@@ -83,7 +165,7 @@ useEffect(() => {
             return "No customers found for this segment";
           }
         },
-        error: "Failed to fetch customers for this segment",
+        error: "Failed to connect to ML service after multiple attempts 😞",
       }
     );
 
