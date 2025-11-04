@@ -54,7 +54,7 @@ const fetchedOnce = useRef(false);
 
 
 // Retry helper (inline)
-const retryApiPost = async (endpoint, data = {}, config = {}, retries = 10, delay = 5000) => {
+const retryApiPost = async (endpoint, data = {}, config = {}, retries = 10, delay = 10000) => {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await api.post(endpoint, data, config);
@@ -146,7 +146,7 @@ useEffect(() => {
 
     await toast.promise(
       retryApiPost(
-        "/api/enrich/analyse",
+        "https://crm-ml-service.onrender.com/",
         { segmentId: segmentId },
         { headers: { Authorization: `Bearer ${token}` } }
       ),

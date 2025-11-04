@@ -49,7 +49,7 @@ export default function CustomerAnalytics() {
 
 
   // Retry helper (inline)
-const retryApiPost = async (endpoint, data = {}, retries = 10, delay = 5000) => {
+const retryApiPost = async (endpoint, data = {}, retries = 10, delay = 10000) => {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await api.post(endpoint, data);
@@ -99,7 +99,7 @@ const retryApiPost = async (endpoint, data = {}, retries = 10, delay = 5000) => 
     fetchedOnce.current = true;
     const fetchEnrichedCustomers = async () => {
       toast.promise(
-  retryApiPost("/api/enrich/analyse-all"),
+  retryApiPost("https://crm-ml-service.onrender.com/"),
   {
     loading: "Fetching customer data",
     success: (res) => {
