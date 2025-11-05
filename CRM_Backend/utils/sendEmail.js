@@ -1,29 +1,31 @@
-import nodemailer from "nodemailer";
+import fetch from "node-fetch";
 import dotenv from "dotenv";
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  host: process.env.BREVO_HOST || "smtp-relay.brevo.com",
-  port: 587,
-  secure: false, // use STARTTLS for Brevo
-  auth: {
-    user: "9ae6da001@smtp-brevo.com", // your Brevo SMTP login (not Gmail)
-    pass: process.env.BREVO_PASS,     // your SMTP key
-  },
-});
-
-export async function sendEmail({ to, subject, html }) {
+export async function sendEmail({ to, subject, text, html }) {
   try {
-    const info = await transporter.sendMail({
-      from: `"CRM PRO" <no-reply@crm-pro.co.in>`,
-      to,
-      subject,
-      html,
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "api-key": process.env.BREVO_PASS, // ✅ Use Brevo API Key here
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: "CRM PRO", email: "no-reply@crm-pro.co.in" },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html || `<pre>${text}</pre>`,
+      }),
     });
-    console.log("✅ Email sent:", info.messageId);
-    return info;
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to send email");
+
+    console.log("Email sent via Brevo API:", data.messageId || "Success");
+    return data;
   } catch (err) {
-    console.error("❌ Email send failed:", err);
+    console.error("Email send failed:", err);
     throw err;
   }
 }
