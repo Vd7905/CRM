@@ -31,12 +31,12 @@ export default function LoginForm() {
 
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
-
   const googleDivRef = useRef(null);
+
   const GOOGLE_CLIENT_ID =
     "415720389429-kui61m56c3ed542fcoo8vik6otjb3e1g.apps.googleusercontent.com";
 
-  // Store user info and tokens
+  // Save tokens & user properly
   const storeUserData = (user, accessToken, refreshToken) => {
     try {
       localStorage.setItem("user", JSON.stringify(user));
@@ -47,7 +47,7 @@ export default function LoginForm() {
     }
   };
 
-  // 🔹 Main Auth (email/password)
+  // AUTH HANDLER
   const handleAuth = async () => {
     if (!email || !password || (isSignup && !name)) {
       toast.error("Please fill in all fields");
@@ -74,12 +74,12 @@ export default function LoginForm() {
     }
   };
 
-  // 🔹 Google Login handler
+  // GOOGLE LOGIN
   const handleGoogleLogin = async (response) => {
     const token = response?.credential;
     if (!token) return toast.error("No Google token received");
 
-    const toastId = toast.loading("Signing in with Google...");
+    const toastId = toast.loading("Signing in with Google Please Wait For A Minute To Wake Up Server......");
     try {
       const res = await api.post("/api/auth/google-login", { token });
       const { user, accessToken, refreshToken } = res.data?.data || {};
@@ -99,11 +99,12 @@ export default function LoginForm() {
     }
   };
 
-  // 🔹 Load Google Script and render button
+  // ✅ Load script & render button safely (no reflow)
   useEffect(() => {
     const renderGoogleButton = () => {
       if (!window.google || !googleDivRef.current) return;
-      googleDivRef.current.innerHTML = ""; // clear previous button
+
+      googleDivRef.current.innerHTML = "";
 
       const containerWidth = googleDivRef.current.offsetWidth;
       const size = containerWidth < 300 ? "medium" : "large";
@@ -121,6 +122,14 @@ export default function LoginForm() {
         shape: "rectangular",
         logo_alignment: "left",
       });
+
+      // Small delay before fade-in for stable iframe rendering
+      setTimeout(() => {
+        if (googleDivRef.current) {
+          googleDivRef.current.style.opacity = "1";
+          googleDivRef.current.style.transform = "translateY(0)";
+        }
+      }, 100);
     };
 
     if (window.google) renderGoogleButton();
@@ -140,7 +149,7 @@ export default function LoginForm() {
     };
   }, []);
 
-  // 🔹 Forgot password
+  // FORGOT PASSWORD
   const handleForgotPassword = async (e) => {
     e?.preventDefault();
     if (!forgotEmail) return toast.error("Please enter your email");
@@ -164,13 +173,11 @@ export default function LoginForm() {
     handleAuth();
   };
 
-  // ✅ UI
   return (
     <div className="min-h-screen relative overflow-hidden bg-[var(--background)] text-[var(--text)]">
       <ThemeToggle />
 
       <div className="grid lg:grid-cols-2 min-h-screen">
-        {/* 3D Section */}
         <div className="grid lg:grid-cols-2 relative">
           <div className="absolute inset-0 lg:static z-0 opacity-40 lg:opacity-100 pointer-events-none">
             <Interactive3DScene />
@@ -185,7 +192,6 @@ export default function LoginForm() {
           </div>
         </div>
 
-        {/* Login / Signup Section */}
         <div className="flex items-center justify-center p-6 lg:p-8 bg-[var(--background)]/50 backdrop-blur-xl overflow-y-auto">
           <div className="w-full max-w-sm">
             <Card className="backdrop-blur-xl border shadow-2xl bg-[var(--card)]">
@@ -199,50 +205,53 @@ export default function LoginForm() {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <form onSubmit={onSubmit} noValidate autoComplete="off" className="space-y-3">
+                <form onSubmit={onSubmit} autoComplete="off" noValidate className="space-y-3">
                   {isSignup && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 text-[var(--foreground)]">
                       <Label htmlFor="name">Name</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
                         <Input
                           id="name"
+                          name="name"
                           type="text"
+                          placeholder="Enter your name"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          placeholder="Enter your name"
                           className="pl-10 h-10"
                         />
                       </div>
                     </div>
                   )}
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 text-[var(--foreground)]">
                     <Label htmlFor="email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
                       <Input
                         id="email"
+                        name="email"
                         type="email"
+                        placeholder="Enter your email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email"
-                        className="pl-10 h-10"
+                        className="pl-10 h-10 text-[var(--foreground)]"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 text-[var(--foreground)]">
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--foreground)]/60" />
                       <Input
                         id="password"
+                        name="password"
                         type={showPassword ? "text" : "password"}
+                        placeholder="Enter password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter password"
-                        className="pl-10 pr-10 h-10"
+                        className="pl-10 pr-10 h-10 text-[var(--foreground)]"
                       />
                       <button
                         type="button"
@@ -272,20 +281,26 @@ export default function LoginForm() {
                     disabled={isLoading}
                   >
                     {isLoading
-                      ? "Processing..."
+                      ? "Processing Please Wait For A Minute To Wake Up Server..."
                       : isSignup
                       ? "Sign Up"
                       : "Sign In"}
                   </Button>
                 </form>
 
-                {/* ✅ Single Google button (no duplicates) */}
+                {/* Google Login Button (fixed shake) */}
                 <div className="mt-4 w-full flex flex-col items-center">
                   <div
                     ref={googleDivRef}
-                    id="googleSignInDiv"
                     className="w-full flex justify-center items-center transition-all duration-300"
-                    style={{ minHeight: "42px", zIndex: 10 }}
+                    style={{
+                      height: "44px",
+                      overflow: "hidden",
+                      zIndex: 10,
+                      opacity: 0,
+                      transform: "translateY(4px)",
+                      willChange: "opacity, transform",
+                    }}
                   />
                 </div>
 
@@ -295,9 +310,7 @@ export default function LoginForm() {
                     onClick={() => setIsSignup((s) => !s)}
                     className="text-[var(--primary)] hover:text-[var(--secondary)] font-semibold text-sm mt-2"
                   >
-                    {isSignup
-                      ? "Already have an account? Sign In"
-                      : "New user? Sign Up here"}
+                    {isSignup ? "Already have an account? Sign In" : "New user? Sign Up here"}
                   </button>
                 </div>
               </CardContent>
@@ -306,7 +319,6 @@ export default function LoginForm() {
         </div>
       </div>
 
-      {/* Forgot Password Modal */}
       {showForgotModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-[var(--card)] p-6 rounded-2xl shadow-2xl w-80 relative backdrop-blur-lg border">

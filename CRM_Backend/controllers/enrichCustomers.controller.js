@@ -1,5 +1,6 @@
 import axios from "axios";
 import dotenv from "dotenv";
+import fs from "fs";
 dotenv.config();
 
 // Helper for days between dates
@@ -53,10 +54,21 @@ export const enrichCustomers = async (req, res) => {
         churn_probability: null, // Not known yet
       };
     });
-const isDocker = process.env.DOCKER_ENV === "true";
-
-const ML_URL = "https://crm-ml-service.onrender.com";
-console.log("🧠 ML Service URL →", ML_URL);
+  let ML_URL;
+  
+  // Detect if running inside Docker
+  const isDocker = fs.existsSync("/.dockerenv") || process.env.DOCKER_ENV === "true";
+  // Logic for choosing URL
+  if (process.env.NODE_ENV === "production") {
+    // In production → always use .env variable (secure)
+    ML_URL = process.env.ML_SERVICE_URL;
+  } else if (isDocker) {
+    // Inside Docker Compose → use docker network URL
+    ML_URL = process.env.ML_SERVICE_URL || "http://ml_service:8001";
+  } else {
+    // Local development → connect to localhost ML service
+    ML_URL = "http://localhost:8001";
+  }
 
 
     // Step 3: Call FastAPI churn endpoint
