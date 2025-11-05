@@ -92,10 +92,35 @@ const forgotPassword = asyncHandler(async (req, res) => {
   user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
   await user.save();
 
-  const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
-  const message = `You requested a password reset. Click here: ${resetUrl}`;
+  //const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+  // const message = `You requested a password reset. Click here: ${resetUrl}`;
 
-  await sendEmail({ to: user.email, subject: "Password Reset Request", text: message });
+  // await sendEmail({ to: user.email, subject: "Password Reset Request", text: message });
+   const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+
+const htmlMessage = `
+  <div style="font-family: Arial, sans-serif; color: #333;">
+    <h2>Password Reset Request</h2>
+    <p>Hello ${user.name || "User"},</p>
+    <p>You requested a password reset for your <b>CRM PRO</b> account.</p>
+    <p>Click the button below to reset your password:</p>
+    <a href="${resetUrl}"
+       style="display:inline-block;padding:10px 20px;background-color:#007bff;color:white;
+              text-decoration:none;border-radius:5px;margin-top:10px;">
+       Reset Password
+    </a>
+    <p>If the button doesn't work, copy and paste this link into your browser:</p>
+    <p><a href="${resetUrl}">${resetUrl}</a></p>
+    <p>This link will expire in 10 minutes.</p>
+  </div>
+`;
+
+await sendEmail({
+  to: user.email,
+  subject: "Password Reset Request - CRM PRO",
+  text: `Reset your password using this link: ${resetUrl}`,
+  html: htmlMessage,
+});
 
   return res.status(200).json(new ApiResponse(200, null, "Reset password link sent to email"));
 });
