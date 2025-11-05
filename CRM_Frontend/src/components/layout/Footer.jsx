@@ -21,12 +21,12 @@ export function Footer() {
           </p>
 
           <a
-            href=""
+            href="https://drive.google.com/file/d/1kTwWPq2kocIpp5Gw6xWta0k_rqXZ_HZ1/view?usp=sharing"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-primary font-medium transition-colors"
           >
-            User Manual
+            User Guide
           </a>
         </div>
       </div>

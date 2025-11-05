@@ -277,11 +277,11 @@ export default function LoginForm() {
 
                   <Button
                     type="submit"
-                    className="w-full h-10 bg-[var(--primary)] hover:bg-[var(--secondary)] text-[var(--card)] font-medium transition-all"
+                    className="w-full flex flex-col h-10 bg-[var(--primary)] hover:bg-[var(--secondary)] text-[var(--card)] font-medium transition-all"
                     disabled={isLoading}
                   >
                     {isLoading
-                      ? "Processing Please Wait For A Minute To Wake Up Server..."
+                      ? "Processing Please Wait A Minute..."
                       : isSignup
                       ? "Sign Up"
                       : "Sign In"}
