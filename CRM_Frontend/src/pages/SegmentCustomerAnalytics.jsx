@@ -51,97 +51,88 @@ export default function SegmentCustomerAnalytics() {
   
 const fetchedOnce = useRef(false);
 
-
-// useEffect(() => {
-//   if (!segmentId) return;
-
-//   if(fetchedOnce.current) return;
-//     fetchedOnce.current = true;
-
-//   const fetchCustomers = async () => {
-//     setLoading(true);
-
-//     const token = localStorage.getItem("token");
-
-//     await toast.promise(
-//       api.post(
-//         "/api/enrich/analyse",
-//         { segmentId: segmentId },
-//         { headers: { Authorization: `Bearer ${token}` } } // <-- correct headers
-//       ),
-//       {
-//         loading: "Fetching customers for this segment...",
-//         success: (res) => {
-//           if (Array.isArray(res.data)) {
-//             setCustomers(res.data);
-//             console.log(res.data);
-//             return `Fetched ${res.data.length} customers Of Your Segment successfully!`;
-//           } else if (res.data?.data && Array.isArray(res.data.data)) {
-//             setCustomers(res.data.data);
-//             return `Fetched ${res.data.data.length} customers successfully!`;
-//           } else {
-//             setCustomers([]);
-//             return "No customers found for this segment";
-//           }
-//         },
-//         error: "Failed to fetch customers for this segment",
-//       }
-//     );
-
-//     setLoading(false);
-//   };
-
-//   fetchCustomers();
-// }, [segmentId]);
-
-
 useEffect(() => {
   if (!segmentId) return;
   if (fetchedOnce.current) return;
   fetchedOnce.current = true;
 
-  const WAKE_WAIT_MS = 60000;   // Render cold start (~50s)
-  const FIRST_TIMEOUT = 8000;   // abort first call fast
-  const RETRY_TIMEOUT = 15000;  // longer timeout after wake
+  const WAKE_WAIT_MS = 60000;   // ~50s cold start
+  const FIRST_TIMEOUT = 8000;   // quick timeout for first try
+  const RETRY_TIMEOUT = 15000;  // longer after wake
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const token = localStorage.getItem("token");
-
   const wakeUpUrl = "https://crm-ml-service.onrender.com/";
   const dataUrl = "/api/enrich/analyse";
 
-  // POST /api/enrich/analyse with timeout
+  // --- Safe API Fetch with Timeout ---
   const fetchDataWithTimeout = async (timeoutMs) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await api.post(
-        dataUrl,
-        { segmentId },
-        { signal: controller.signal, headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (Array.isArray(res.data)) {
-        setCustomers(res.data);
-        return res.data.length;
-      } else if (Array.isArray(res.data?.data)) {
-        setCustomers(res.data.data);
-        return res.data.data.length;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await api.post(
+      dataUrl,
+      { segmentId },
+      {
+        signal: controller.signal,
+        headers: { Authorization: `Bearer ${token}` },
+        validateStatus: () => true, // don't auto-throw on 4xx/5xx
       }
-      setCustomers([]);
-      throw new Error("No customers found");
-    } finally {
-      clearTimeout(timer);
+    );
+
+    // 🧠 Normalize all possible data shapes
+    let dataArray = null;
+
+    if (Array.isArray(res?.data)) {
+      dataArray = res.data;
+    } else if (Array.isArray(res?.data?.data)) {
+      dataArray = res.data.data;
+    } else if (Array.isArray(res?.data?.customers)) {
+      dataArray = res.data.customers;
+    } else if (res.status === 204) {
+      dataArray = [];
     }
-  };
+
+    // ✅ Case 1: Successful fetch (including empty)
+    if (Array.isArray(dataArray)) {
+      setCustomers(dataArray);
+
+      if (dataArray.length === 0) {
+        toast.info("No customers found in this segment — upload or enrich data to begin!");
+        return { ok: true, empty: true };
+      }
+
+      return { ok: true, empty: false, count: dataArray.length };
+    }
+
+    // ✅ Case 2: Unexpected structure but not a timeout — treat as empty gracefully
+    if (res.status >= 200 && res.status < 300) {
+      setCustomers([]);
+      toast.info("No customers found in this segment");
+      return { ok: true, empty: true };
+    }
+
+    // ❌ Case 3: Server error (not empty, not success)
+    return { ok: false, reason: `http-${res.status}` };
+
+  } catch (err) {
+    if (err.name === "AbortError") return { ok: false, reason: "timeout" };
+    return { ok: false, reason: "network" };
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 
   const pingRenderRoot = async () => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000); // 3s safety
+    const timeout = setTimeout(() => controller.abort(), 3000);
     try {
       await fetch(wakeUpUrl, { mode: "no-cors", cache: "no-store", signal: controller.signal });
     } catch {
-      /* ignore network errors */
+      /* ignore */
     } finally {
       clearTimeout(timeout);
     }
@@ -149,32 +140,36 @@ useEffect(() => {
 
   (async () => {
     setLoading(true);
-
-    // 1️⃣ Try normal fetch first
     const loadId = toast.loading("Fetching customers for this segment…");
-    let ok = false;
-    try {
-      const count = await fetchDataWithTimeout(FIRST_TIMEOUT);
-      toast.dismiss(loadId);
-      toast.success(`Fetched ${count} customers of your segment`);
-      ok = true;
-    } catch (e) {
-      toast.dismiss(loadId);
-      toast.warning("Initial fetch failed/timed out — ML server may be asleep");
-    }
 
-    if (ok) {
+    const first = await fetchDataWithTimeout(FIRST_TIMEOUT);
+    toast.dismiss(loadId);
+
+    // ✅ Success or empty → done
+    if (first.ok) {
+      if (first.empty) {
+        setLoading(false);
+        return;
+      }
+      toast.success(`Fetched ${first.count} customers of your segment`);
       setLoading(false);
       return;
     }
 
-    // 2️⃣ Wake Render ML service (never loops endlessly)
+    // ❌ If not timeout (e.g., 404, 500), just stop and show error
+    if (first.reason !== "timeout") {
+      toast.error("Could not fetch customers. Please try again later.");
+      setLoading(false);
+      return;
+    }
+
+    // 💤 Timeout → wake ML server
     const pingId = "wake-ping";
     toast.loading("Pinging ML server to wake up…", { id: pingId });
     await pingRenderRoot();
     toast.dismiss(pingId);
 
-    // 3️⃣ Countdown while server wakes (~50s)
+    // countdown display
     let remaining = Math.ceil(WAKE_WAIT_MS / 1000);
     const waitId = "wake-wait";
     toast.loading(`Waking ML server… (~${remaining}s)`, { id: waitId });
@@ -187,21 +182,22 @@ useEffect(() => {
     clearInterval(tick);
     toast.dismiss(waitId);
 
-    // 4️⃣ Retry fetch
+    // retry
     const retryId = toast.loading("Retrying data fetch after wake-up…");
-    try {
-      const count = await fetchDataWithTimeout(RETRY_TIMEOUT);
-      toast.dismiss(retryId);
-      toast.success(`ML server awake — fetched ${count} customers`);
-    } catch (e) {
-      toast.dismiss(retryId);
-      toast.error("Still couldn’t fetch after wake-up. Please try again shortly");
-      console.error("Retry failed:", e?.message || e);
+    const retry = await fetchDataWithTimeout(RETRY_TIMEOUT);
+    toast.dismiss(retryId);
+
+    if (retry.ok) {
+      if (retry.empty) toast.info("No customers found in this segment — upload data to begin!");
+      else toast.success(`ML server awake — fetched ${retry.count} customers`);
+    } else {
+      toast.error("Still couldn’t fetch after wake-up. Please try again shortly.");
     }
 
     setLoading(false);
   })();
 }, [segmentId]);
+
 
   // Derived metrics
   const stats = useMemo(() => {

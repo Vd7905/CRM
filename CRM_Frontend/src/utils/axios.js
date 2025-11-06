@@ -2,7 +2,7 @@ import axios from "axios";
 
 const api = axios.create({
   //baseURL: "http://localhost:8000",
-   baseURL:   "https://crm-crm-backend.onrender.com",
+  baseURL:   "https://crm-crm-backend.onrender.com",
   headers: { "Content-Type": "application/json" },
 });
 
