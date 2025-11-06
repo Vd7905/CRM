@@ -7,7 +7,6 @@ const customerSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
     validate: {
       validator: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
       message: (props) => `${props.value} is not a valid email!`,
@@ -35,7 +34,7 @@ const customerSchema = new mongoose.Schema({
   },
   segments: [{ type: mongoose.Schema.Types.ObjectId, ref: "Segment" }],
   tags: [String],
-  uploaded_by: { type: mongoose.Schema.Types.ObjectId, ref: "User"},
+  uploaded_by: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true},
   created_at: { type: Date, default: Date.now },
   updated_at: Date,
   is_active: { type: Boolean, default: true },
@@ -46,5 +45,7 @@ customerSchema.pre("save", function (next) {
   this.updated_at = Date.now();
   next();
 });
+
+customerSchema.index({ email: 1, uploaded_by: 1 }, { unique: true });
 
 export const Customer = mongoose.model("Customer", customerSchema);

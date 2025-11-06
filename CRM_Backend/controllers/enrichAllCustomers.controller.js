@@ -21,7 +21,7 @@ export const enrichAllCustomers = async (req, res) => {
     }
 
    // ✅ Fetch customers uploaded by this user
-    const customers = await Customer.find({ uploaded_by: userId }).lean();
+   const customers = await Customer.find({ uploaded_by: userId }).lean();
     //console.log(customers.length);
     if (!customers.length) {
       return res.status(200).json({ message: "No customers found for this user" });
