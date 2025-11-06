@@ -1,0 +1,21 @@
+name,email,phone,city,state,country,total_spent,order_count,last_purchase,is_active
+Neysa,temp1@example.com,8088428009,Pune,Maharashtra,India,3660,29,16-09-2025,TRUE
+Piya,temp2@example.com,7168856999,Surat,Gujarat,India,3385,50,22-10-2025,TRUE
+Nirvaan,temp3@example.com,6677593752,Bengaluru,Karnataka,India,2293,28,27-09-2025,TRUE
+Pihu,temp4@example.com,7162660575,Kochi,Kerala,India,6239,40,20-08-2025,FALSE
+Vedika,temp5@example.com,8709837730,Bengaluru,Karnataka,India,4378,17,27-10-2025,FALSE
+Hazel,temp6@example.com,7609297677,Chennai,Tamil Nadu,India,8139,48,03-11-2025,FALSE
+Damini,temp7@example.com,7246296262,Amritsar,Punjab,India,9263,49,18-09-2025,FALSE
+Taimur,temp8@example.com,7377315136,Amritsar,Punjab,India,4131,5,20-10-2025,FALSE
+Diya,temp9@example.com,8536147289,Patna,Bihar,India,2509,3,14-08-2025,FALSE
+Ranbir,temp10@example.com,8970243772,Mumbai,Maharashtra,India,8019,16,14-09-2025,FALSE
+Diya,temp11@example.com,9176347563,Mumbai,Maharashtra,India,8450,21,27-10-2025,FALSE
+Nehmat,temp12@example.com,6418276965,Surat,Gujarat,India,7969,6,18-10-2025,FALSE
+Jiya,temp13@example.com,7583934517,Bhopal,Madhya Pradesh,India,3764,24,08-08-2025,FALSE
+Badal,temp14@example.com,8272092116,Pune,Maharashtra,India,7350,22,03-10-2025,FALSE
+Amira,temp15@example.com,7013243302,Patna,Bihar,India,4682,37,19-08-2025,TRUE
+Anay,temp16@example.com,6696637619,Bhopal,Madhya Pradesh,India,7708,14,23-09-2025,TRUE
+Renee,temp17@example.com,6320699351,Chennai,Tamil Nadu,India,9723,3,30-08-2025,TRUE
+Myra,temp18@example.com,7022804901,Kanpur,Uttar Pradesh,India,6574,11,01-11-2025,FALSE
+Shlok,temp19@example.com,8857549553,Bengaluru,Karnataka,India,6174,37,31-08-2025,TRUE
+Nirvaan,temp20@example.com,7458390770,Jaipur,Rajasthan,India,4877,4,07-10-2025,FALSE
