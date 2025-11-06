@@ -11,7 +11,6 @@ import {
 import authenticate from "../middleware/auth.middleware.js";
 
 const router = Router();
-
 // Segment
 router.route("/create-segment").post(authenticate, createSegment);
 router.route("/get-segment").get(authenticate, getUserSegments);

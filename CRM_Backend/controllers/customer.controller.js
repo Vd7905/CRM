@@ -333,3 +333,4 @@ export const insertCustomers = asyncHandler(async (req, res) => {
       throw new ApiError(500, "Error parsing CSV file");
     });
 });
+

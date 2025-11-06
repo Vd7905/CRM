@@ -391,9 +391,6 @@ const processCampaignInBackground = async (campaignId) => {
   }
 };
 
-
-
-
 export {
   createCampaign,
   getUserCampaigns,
