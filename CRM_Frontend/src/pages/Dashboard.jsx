@@ -249,7 +249,7 @@ export default function Dashboard() {
                   </Dialog>
 
                   {/* Communication Logs Dialog */}
-                  <Dialog onOpenChange={(open) => open && fetchLogs(c._id)}>
+                  {/* <Dialog onOpenChange={(open) => open && fetchLogs(c._id)}>
                     <DialogTrigger asChild>
                       <Button
                         variant="outline"
@@ -338,7 +338,93 @@ export default function Dashboard() {
                         Close
                       </DialogClose>
                     </DialogContent>
-                  </Dialog>
+                  </Dialog> */}
+                  {/* Communication Logs Dialog */}
+<Dialog onOpenChange={(open) => open && fetchLogs(c._id)}>
+  <DialogTrigger asChild>
+    <Button
+      variant="outline"
+      className="border-[var(--primary)] text-[var(--primary)]"
+    >
+      Communication Logs
+    </Button>
+  </DialogTrigger>
+  <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+    <DialogHeader>
+      <DialogTitle>{c.name} - Communication Logs</DialogTitle>
+      <div className="flex flex-col sm:flex-row gap-2 mt-2">
+        <Input
+          placeholder="Search by customer..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="sent">Sent</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </DialogHeader>
+
+    {logLoading[c._id] ? (
+      <div className="flex justify-center items-center py-6">
+        <div className="w-10 h-10 border-4 border-[var(--muted)] border-t-[var(--primary)] rounded-full animate-spin"></div>
+      </div>
+    ) : (
+      <div className="mt-4 w-full max-w-full overflow-x-auto">
+        <div className="min-w-[600px] sm:min-w-[700px]">
+          <table className="w-full text-xs sm:text-sm text-left border-collapse">
+            <thead className="bg-[var(--muted)]/40">
+              <tr>
+                <th className="px-4 py-2 sm:px-6 sm:py-3 font-medium">Customer</th>
+                <th className="px-4 py-2 sm:px-6 sm:py-3 font-medium">Email</th>
+                <th className="px-4 py-2 sm:px-6 sm:py-3 font-medium">Status</th>
+                <th className="px-4 py-2 sm:px-6 sm:py-3 font-medium">Sent At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(logs[c._id] || [])
+                .filter((log) =>
+                  log.customer?.name
+                    ?.toLowerCase()
+                    .includes(search.toLowerCase())
+                )
+                .filter((log) =>
+                  statusFilter === "all" || !statusFilter
+                    ? true
+                    : log.status.toLowerCase() ===
+                      statusFilter.toLowerCase()
+                )
+                .map((log, idx) => (
+                  <tr
+                    key={idx}
+                    className="border-t border-[var(--muted)] hover:bg-[var(--muted)]/20 transition-colors"
+                  >
+                    <td className="px-4 py-2 sm:px-6 sm:py-4">{log.customer?.name || "-"}</td>
+                    <td className="px-4 py-2 sm:px-6 sm:py-4">{log.customer?.email || "-"}</td>
+                    <td className="px-4 py-2 sm:px-6 sm:py-4">{log.status}</td>
+                    <td className="px-4 py-2 sm:px-6 sm:py-4">
+                      {new Date(log.sent_at).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+
+    <DialogClose className="mt-4 bg-[var(--primary)] text-white px-4 py-2 rounded">
+      Close
+    </DialogClose>
+  </DialogContent>
+</Dialog>
+
                 </td>
               </tr>
             ))}

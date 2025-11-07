@@ -13,7 +13,7 @@ app = FastAPI(title="CRM ML Service - Churn + Recommendation")
 # Allow Express backend to call
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # your Express backend URL
+    allow_origins=["http://localhost:8000"],  # your Express backend URL
     allow_methods=["*"],
     allow_headers=["*"],
 )

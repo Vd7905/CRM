@@ -149,6 +149,7 @@ const estimateSegment = asyncHandler(async (req, res) => {
   }
 
   const query = buildSegmentQuery(rules);
+   query.uploaded_by = req.user?._id;
 
   const count = await Customer.countDocuments(query);
 
@@ -255,6 +256,42 @@ const getUserCampaigns = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, campaigns, "Campaigns fetched successfully"));
 });
 
+// const getCommuniactionLog = asyncHandler(async (req, res) => {
+//   const { campaignId } = req.query;
+
+//   if (!campaignId) {
+//     throw new ApiError(400, "Campaign ID is required");
+//   }
+
+//   const logs = await CommunicationLog.find({ campaign_id: campaignId })
+//     .populate({
+//       path: "customer_id",
+//       select: "name email phone address",
+//       model: Customer,
+//     })
+//     .sort({ sent_at: -1 });
+
+//   // Transform the data to flatten customer info
+//   const transformedLogs = logs.map((log) => {
+//     const logObj = log.toObject();
+//     return {
+//       ...logObj,
+//       customer: logObj.customer_id,
+//       customer_id: undefined, // Remove the nested customer_id
+//     };
+//   });
+
+//   res
+//     .status(200)
+//     .json(
+//       new ApiResponse(
+//         200,
+//         transformedLogs,
+//         "Communication logs fetched successfully"
+//       )
+//     );
+// });
+
 const getCommuniactionLog = asyncHandler(async (req, res) => {
   const { campaignId } = req.query;
 
@@ -262,21 +299,37 @@ const getCommuniactionLog = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Campaign ID is required");
   }
 
+  // 1. Verify campaign belongs to this user
+  const campaign = await Campaign.findOne({
+    _id: campaignId,
+    created_by: req.user._id,
+  });
+
+  if (!campaign) {
+    throw new ApiError(404, "Campaign not found or access denied");
+  }
+
+  // 2. Fetch logs only for this campaign
   const logs = await CommunicationLog.find({ campaign_id: campaignId })
     .populate({
       path: "customer_id",
-      select: "name email phone address",
+      select: "name email phone address uploaded_by",
       model: Customer,
     })
-    .sort({ sent_at: -1 });
+    .sort({ sent_at: -1 })
+    .lean();
 
-  // Transform the data to flatten customer info
-  const transformedLogs = logs.map((log) => {
-    const logObj = log.toObject();
+  // 3. Filter logs to include only customers uploaded by this user
+  const filteredLogs = logs.filter(
+    (log) => log.customer_id?.uploaded_by?.toString() === req.user._id.toString()
+  );
+
+  // 4. Transform data
+  const transformedLogs = filteredLogs.map((log) => {
     return {
-      ...logObj,
-      customer: logObj.customer_id,
-      customer_id: undefined, // Remove the nested customer_id
+      ...log,
+      customer: log.customer_id,
+      customer_id: undefined,
     };
   });
 
@@ -290,8 +343,6 @@ const getCommuniactionLog = asyncHandler(async (req, res) => {
       )
     );
 });
-
-
 
 const processCampaignInBackground = async (campaignId) => {
   try {

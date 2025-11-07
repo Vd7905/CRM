@@ -8,7 +8,7 @@ export async function sendEmail({ to, subject, text, html }) {
       method: "POST",
       headers: {
         "accept": "application/json",
-        "api-key": process.env.BREVO_PASS, // ✅ Use Brevo API Key here
+        "api-key": process.env.BREVO_API_KEY, // ✅ Use Brevo API Key here
         "content-type": "application/json",
       },
       body: JSON.stringify({
