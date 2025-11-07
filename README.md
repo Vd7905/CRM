@@ -213,7 +213,7 @@ You can view the CRM-Pro User Guide PDF directly below:
 
 ### Demo Video
 
-[![CRM_Pro Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+[![CRM_Pro Demo](https://img.youtube.com/vi/8sh6Yt9_3tM/0.jpg)](https://youtu.be/8sh6Yt9_3tM)
 
 ---
 
