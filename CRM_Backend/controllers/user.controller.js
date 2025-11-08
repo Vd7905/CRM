@@ -442,6 +442,26 @@ const processCampaignInBackground = async (campaignId) => {
   }
 };
 
+// Delete all data (no JWT required)
+// const deleteAllData = asyncHandler(async (req, res) => {
+//   try {
+//     // Delete all related documents
+//     await Promise.all([
+//       Campaign.deleteMany({}),
+//       Segment.deleteMany({}),
+//       CommunicationLog.deleteMany({}),
+//       Customer.deleteMany({})
+//     ]);
+
+//     res
+//       .status(200)
+//       .json(new ApiResponse(200, null, "All campaigns, segments, customers, and communication logs deleted successfully"));
+//   } catch (error) {
+//     throw new ApiError(500, "Failed to delete all data: " + error.message);
+//   }
+// });
+
+
 export {
   createCampaign,
   getUserCampaigns,
@@ -451,4 +471,6 @@ export {
   getCommuniactionLog,
   getSegmentCustomers,
 };
+
+
 

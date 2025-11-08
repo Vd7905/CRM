@@ -56,14 +56,14 @@ useEffect(() => {
   if (fetchedOnce.current) return;
   fetchedOnce.current = true;
 
-  const WAKE_WAIT_MS = 60000;   // ~50s cold start
-  const FIRST_TIMEOUT = 8000;   // quick timeout for first try
+  const WAKE_WAIT_MS = 60000;   // ~60s cold start
+  const FIRST_TIMEOUT = 10000;   // quick timeout for first try
   const RETRY_TIMEOUT = 15000;  // longer after wake
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const token = localStorage.getItem("token");
-  const wakeUpUrl = "https://crm-ml-service.onrender.com/";
+  const wakeUpUrl = "https://crm-ml-service.onrender.com";
   const dataUrl = "/api/enrich/analyse";
 
   // --- Safe API Fetch with Timeout ---
@@ -118,7 +118,7 @@ useEffect(() => {
     return { ok: false, reason: `http-${res.status}` };
 
   } catch (err) {
-    if (err.name === "AbortError") return { ok: false, reason: "timeout" };
+    if (err.code === "ERR_CANCELED") return { ok: false, reason: "timeout" };
     return { ok: false, reason: "network" };
   } finally {
     clearTimeout(timer);

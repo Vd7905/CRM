@@ -55,8 +55,8 @@ useEffect(() => {
   if (fetchedOnce.current) return;
   fetchedOnce.current = true;
 
-  const WAKE_WAIT_MS = 60000;     // ~50s cold start
-  const FIRST_TIMEOUT = 12000;    // 12s first try
+  const WAKE_WAIT_MS = 60000;     // ~60s cold start
+  const FIRST_TIMEOUT = 10000;    // 10s first try
   const RETRY_TIMEOUT = 15000;    // 15s retry
 
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -95,7 +95,7 @@ useEffect(() => {
       return { ok: true, empty: true };
     } catch (e) {
       // Only timeouts/aborts trigger wake flow
-      if (e.name === "AbortError") return { ok: false, reason: "timeout" };
+      if (e.code === "ERR_CANCELED") return { ok: false, reason: "timeout" };
       return { ok: false, reason: "network" };
     } finally {
       clearTimeout(t);
@@ -106,7 +106,7 @@ useEffect(() => {
     const c = new AbortController();
     const t = setTimeout(() => c.abort(), 3000);
     try {
-      await fetch("https://crm-ml-service.onrender.com/", { mode: "no-cors", cache: "no-store", signal: c.signal });
+      await fetch("https://crm-ml-service.onrender.com", { mode: "no-cors", cache: "no-store", signal: c.signal });
     } catch {}
     clearTimeout(t);
   };
