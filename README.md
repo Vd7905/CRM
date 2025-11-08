@@ -4,7 +4,6 @@
   
 ![CRM_Pro Banner](https://img.shields.io/badge/CRM-Pro-blue?style=for-the-badge)
 ![Version](https://img.shields.io/badge/version-1.0-green?style=for-the-badge)
-![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)
 
 </div>
 
@@ -95,7 +94,7 @@ CRM-PRO is an advanced Customer Relationship Management system built with a micr
 ### System Architecture
 
 ```mermaid
-graph TB
+   graph TB
     %% === Actor ===
     user(["User / Customer"])
     
@@ -170,15 +169,16 @@ graph TB
     docker_compose -.->|"Deploys to"| vercel
     docker_compose -.->|"Deploys to"| render
     db_mongo -.->|"Hosted on"| mongo_atlas
-    
+
     %% === Styling ===
-    classDef userStyle fill:#dbeafe,stroke:#60a5fa,stroke-width:2px,color:#1e3a8a
-    classDef frontendStyle fill:#eff6ff,stroke:#93c5fd,stroke-width:2px
-    classDef backendStyle fill:#ecfdf5,stroke:#86efac,stroke-width:2px
-    classDef mlStyle fill:#faf5ff,stroke:#e9d5ff,stroke-width:2px
-    classDef dataStyle fill:#fefce8,stroke:#facc15,stroke-width:2px
-    classDef externalStyle fill:#f8fafc,stroke:#e2e8f0,stroke-width:2px
-    classDef cloudStyle fill:#f1f5f9,stroke:#38bdf8,stroke-width:2px
+    %% --- Global Dark Background ---
+    style frontend fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
+    style backend fill:#1e293b,stroke:#4ade80,stroke-width:2px,color:#f8fafc
+    style ml_service fill:#312e81,stroke:#a78bfa,stroke-width:2px,color:#faf5ff
+    style data fill:#3f3f46,stroke:#facc15,stroke-width:2px,color:#fefce8
+    style external fill:#334155,stroke:#94a3b8,stroke-width:2px,color:#f1f5f9
+    style cloud fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#e2e8f0
+    style user fill:#1e3a8a,stroke:#60a5fa,stroke-width:2px,color:#f8fafc
 
     class user userStyle
     class react_ui frontendStyle
@@ -187,6 +187,16 @@ graph TB
     class db_mongo dataStyle
     class google_oauth,email_service externalStyle
     class docker_engine,docker_compose,vercel,render,mongo_atlas cloudStyle
+
+    %% === Class Definitions for Reuse ===
+    classDef userStyle fill:#1e3a8a,stroke:#60a5fa,stroke-width:2px,color:#f8fafc
+    classDef frontendStyle fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
+    classDef backendStyle fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#f0fdf4
+    classDef mlStyle fill:#312e81,stroke:#a78bfa,stroke-width:2px,color:#faf5ff
+    classDef dataStyle fill:#3f3f46,stroke:#facc15,stroke-width:2px,color:#fefce8
+    classDef externalStyle fill:#334155,stroke:#94a3b8,stroke-width:2px,color:#e2e8f0
+    classDef cloudStyle fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
+
 
 ```
 
